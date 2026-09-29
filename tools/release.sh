@@ -3,8 +3,8 @@
 #
 # 流程：版本号写 Info.plist（CFBundleVersion 取 max(当天日期, 当前+1) 保证单调递增）
 #   → make app（SPM 构建 + 内嵌 Sparkle + 稳定证书签名）
-#   → zip → sign_update（EdDSA，私钥在本机 Keychain，公钥在 Info.plist SUPublicEDKey）
-#   → gh release 上传 zip → 更新 releases 仓库 appcast.xml 并推送
+#   → zip（Sparkle 更新载体）+ dmg（官网下载按钮）→ sign_update（EdDSA，私钥在本机 Keychain，公钥在 Info.plist SUPublicEDKey）
+#   → gh release 上传 zip+dmg → 更新 releases 仓库 appcast.xml 并推送
 #   → 官网 site/index.html 下载链接/版本文案/文件大小同步 + 源码仓库提交推送
 #     （Pages 部署流自动上线，全程零手动步骤）
 set -euo pipefail
@@ -27,6 +27,7 @@ rm -f "$GUARD"
 RELEASES_REPO="mellivora-tech/parrotlet-releases"
 REL_DIR="build/release-checkout"
 ZIP="build/Parrotlet-$VERSION.zip"
+DMG="build/Parrotlet-$VERSION.dmg"
 
 # ---- 1. 版本号 ----
 # 发版前的旧版本号：第 6 步同步官网下载链接时用它做查找替换
@@ -42,8 +43,16 @@ echo "==> 版本 $VERSION (build $BUILD)"
 make app
 
 # ---- 3. 打包 + EdDSA 签名 ----
-rm -f "$ZIP"
+# zip：Sparkle appcast 的更新载体（已验证管道，不动）；
+# dmg：官网下载按钮面向用户的安装体验（app + /Applications 软链，拖入即装）
+rm -f "$ZIP" "$DMG"
 ditto -c -k --sequesterRsrc --keepParent build/Parrotlet.app "$ZIP"
+DMG_STAGE="build/dmg-stage"
+rm -rf "$DMG_STAGE" && mkdir -p "$DMG_STAGE"
+cp -R build/Parrotlet.app "$DMG_STAGE/"
+ln -s /Applications "$DMG_STAGE/Applications"
+hdiutil create -volname "Parrotlet" -srcfolder "$DMG_STAGE" -ov -format UDZO "$DMG" >/dev/null
+rm -rf "$DMG_STAGE"
 SIG_OUT="$(tools/sparkle/sign_update "$ZIP")"
 SIG="$(print -r -- "$SIG_OUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')"
 LEN="$(stat -f%z "$ZIP")"
@@ -53,7 +62,7 @@ echo "==> 已签名 (length=$LEN)"
 # ---- 4. 上传 Release ----
 [ -d "$REL_DIR/.git" ] || git clone -q "https://github.com/$RELEASES_REPO" "$REL_DIR"
 git -C "$REL_DIR" fetch -q origin main && git -C "$REL_DIR" reset -q --hard origin/main
-gh release create "v$VERSION" "$ZIP" --repo "$RELEASES_REPO" \
+gh release create "v$VERSION" "$ZIP" "$DMG" --repo "$RELEASES_REPO" \
     --title "Parrotlet $VERSION" --notes "${NOTES:-Parrotlet $VERSION}"
 echo "==> Release v$VERSION 已上传"
 
