@@ -1,0 +1,21 @@
+build/
+.DS_Store
+vendor/
+.claude/settings.local.json
+
+# tools/shoot 编译产物(README 里一行 swiftc 即可重建)
+tools/shoot/click
+tools/shoot/mmove
+tools/shoot/typer
+tools/shoot/drag
+tools/shoot/scroll
+
+# 视频拍摄：被取代的中间成片（保留但不入库）
+assets/video/_superseded/
+
+# 原始 take 是 5MB 二进制、且下次重拍就会换，不入库（管线输入，见 tools/shoot/README.md）
+assets/video/takes/
+tools/shoot/key
+
+# SPM 构建产物（Package.swift）
+.build/

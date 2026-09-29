@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swiftc --version
+          make --version
+
+      - name: Unit tests
+        run: make test
+
+      - name: Swift 6 typecheck
+        run: make swift6-typecheck
+
+      - name: Compile real-network smoke without request
+        run: make smoke-compile
+
+      - name: Build app
+        run: make app
+
+      - name: Validate bundle
+        run: |
+          plutil -lint Info.plist
+          plutil -lint build/Parrotlet.app/Contents/Info.plist
+          codesign --verify build/Parrotlet.app
+          file build/Parrotlet.app/Contents/MacOS/Parrotlet
+          vtool -show-build build/Parrotlet.app/Contents/MacOS/Parrotlet | tee /tmp/vtool.txt
+          grep -q 'platform MacOSX' /tmp/vtool.txt

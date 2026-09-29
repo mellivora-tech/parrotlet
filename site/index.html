@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LanguageAgent — 菜单栏里的英语私教</title>
+<meta name="description" content="LanguageAgent 是一款驻留在 macOS 菜单栏的英语家教:接着上次的对话继续学,问词问句、批改润色,本地优先,自带 API Key。">
+<link rel="icon" type="image/png" href="assets/appicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --pitch: #000000;
+  --void: #040407;
+  --graphite: #08080c;
+  --obsidian: #0a0a13;
+  --charcoal: #2a2a32;
+  --smoke: #757580;
+  --ash: #a3a3b3;
+  --vellum: #fcfcfc;
+  --lilac: #dedfee;
+  --iris: #6199f6;
+  --twilight: #4f4f80;
+  --font-body: "Inter", -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SF Mono", monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--obsidian);
+  color: var(--ash);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+::selection { background: var(--iris); color: var(--pitch); }
+
+/* ---------- 宇宙渐变氛围层 ---------- */
+.cosmos {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(1100px 700px at 82% -8%, rgba(79, 79, 128, .38), transparent 62%),
+    radial-gradient(900px 620px at 8% 12%, rgba(35, 48, 96, .30), transparent 60%),
+    radial-gradient(1400px 900px at 50% 118%, rgba(28, 26, 66, .42), transparent 65%),
+    linear-gradient(180deg, var(--void) 0%, var(--obsidian) 22%, var(--obsidian) 78%, var(--void) 100%);
+}
+
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+/* ---------- 导航 ---------- */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  background: rgba(10, 10, 19, .62);
+  border-bottom: 1px solid rgba(79, 79, 128, .22);
+}
+.nav-inner { display: flex; align-items: center; gap: 32px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand img { width: 26px; height: 26px; border-radius: 7px; }
+.brand span { color: var(--vellum); font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
+.nav-links { display: flex; gap: 28px; margin-left: auto; }
+.nav-links a {
+  color: var(--ash); text-decoration: none; font-size: 14px;
+  transition: color .18s;
+}
+.nav-links a:hover { color: var(--vellum); }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  border-radius: 100px; padding: 10px 22px;
+  font-size: 14px; font-weight: 500; text-decoration: none;
+  transition: background .18s, color .18s, border-color .18s;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-solid { background: var(--vellum); color: var(--obsidian); }
+.btn-solid:hover { background: var(--lilac); }
+.btn-ghost { background: transparent; color: var(--vellum); border: 1px solid rgba(252, 252, 252, .55); }
+.btn-ghost:hover { background: var(--vellum); color: var(--obsidian); }
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+
+/* ---------- 眉标 ---------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--iris);
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-bottom: 22px;
+}
+.eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--iris); }
+
+/* ---------- Hero ---------- */
+.hero {
+  padding: 188px 0 110px; position: relative; overflow: clip;
+  background:
+    radial-gradient(68% 72% at 82% -6%, rgba(70, 79, 168, .52) 0%, rgba(79, 79, 128, .18) 42%, transparent 70%),
+    radial-gradient(54% 62% at 8% 12%, rgba(28, 102, 162, .42) 0%, rgba(35, 48, 96, .14) 48%, transparent 72%),
+    radial-gradient(44% 56% at 92% 48%, rgba(157, 63, 174, .40) 0%, rgba(91, 66, 150, .12) 50%, transparent 76%),
+    radial-gradient(36% 48% at 72% 88%, rgba(66, 45, 156, .34) 0%, rgba(66, 45, 156, .10) 52%, transparent 78%),
+    linear-gradient(195deg, #100a20 0%, #0a0a13 45%, #0b1124 100%);
+}
+.hero-gl { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.hero-aurora { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.hero-aurora i {
+  position: absolute; top: 0; left: 0; border-radius: 50%;
+  will-change: transform, opacity; mix-blend-mode: screen;
+}
+/* 自主漂移的云层:青蓝、靛蓝、紫罗兰与洋红柔焦光斑,周期错开 */
+.hero-aurora .c1 {
+  width: 1100px; height: 760px;
+  background: radial-gradient(closest-side, rgba(70, 197, 245, .32), rgba(75, 144, 230, .10) 48%, transparent 72%);
+  filter: blur(84px);
+}
+.hero-aurora .c2 {
+  width: 900px; height: 640px;
+  background: radial-gradient(closest-side, rgba(139, 98, 242, .32), rgba(123, 111, 240, .10) 48%, transparent 74%);
+  filter: blur(78px);
+}
+.hero-aurora .c3 {
+  width: 1400px; height: 900px;
+  background: radial-gradient(closest-side, rgba(207, 75, 197, .28), rgba(123, 67, 183, .10) 50%, transparent 76%);
+  filter: blur(108px);
+}
+/* 鼠标浓烟:默认隐藏,移动时淡入,静置后缓慢消散;三层 = 浓芯 + 中层 + 拖尾 */
+.hero-aurora .m1 {
+  width: 900px; height: 680px; opacity: 0;
+  background: radial-gradient(closest-side, rgba(84, 211, 250, .30), rgba(92, 128, 238, .09) 55%, transparent);
+  filter: blur(68px);
+}
+.hero-aurora .m2 {
+  width: 1250px; height: 880px; opacity: 0;
+  background: radial-gradient(closest-side, rgba(151, 96, 242, .20), transparent);
+  filter: blur(100px);
+}
+.hero-aurora .m3 {
+  width: 1600px; height: 1100px; opacity: 0;
+  background: radial-gradient(closest-side, rgba(224, 83, 204, .14), transparent);
+  filter: blur(128px);
+}
+.hero .wrap { position: relative; z-index: 1; }
+.hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 64px; align-items: center; }
+h1 {
+  color: var(--vellum); font-weight: 400;
+  font-size: clamp(38px, 4.4vw, 60px);
+  line-height: 1.12; letter-spacing: -.032em;
+  margin-bottom: 28px;
+}
+h1 em { font-style: normal; color: var(--iris); }
+.hero-sub { font-size: 18px; max-width: 480px; margin-bottom: 40px; }
+.hero-ctas { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.hero-note { margin-top: 22px; font-size: 13px; color: var(--smoke); font-family: var(--font-mono); }
+
+.hero-shot { position: relative; display: flex; justify-content: center; min-width: 0; }
+.hero-shot::before {
+  content: ""; position: absolute; inset: -18% -26%;
+  background:
+    radial-gradient(44% 50% at 50% 42%, rgba(77, 182, 246, .42), transparent 68%),
+    radial-gradient(78% 88% at 52% 56%, rgba(135, 91, 229, .30), transparent 74%),
+    radial-gradient(78% 66% at 92% 48%, rgba(210, 74, 195, .20), transparent 78%),
+    radial-gradient(105% 100% at 50% 102%, rgba(52, 64, 155, .28), transparent 80%);
+  filter: blur(22px); z-index: -1;
+}
+@media (max-width: 960px) { .hero-shot::before { inset: -6% -8%; } }
+.hero-shot .shot { width: 100%; max-width: 480px; height: auto;
+  /* 视频是带 alpha 的：窗口直接浮在页面背景上，不能再套边框/投影，否则画出矩形接缝 */
+  border: 0; box-shadow: none; border-radius: 0; background: transparent; }
+.shot {
+  border-radius: 12px;
+  border: 1px solid rgba(79, 79, 128, .55);
+  box-shadow: 0 0 0 1px rgba(97, 153, 246, .08), 0 30px 80px rgba(0, 0, 0, .55);
+  display: block;
+  max-width: 100%; height: auto;
+}
+
+/* ---------- 供应商条 ---------- */
+.providers {
+  border-top: 1px solid rgba(79, 79, 128, .22);
+  border-bottom: 1px solid rgba(79, 79, 128, .22);
+  padding: 34px 0;
+}
+.providers-inner { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+.providers-label { font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; color: var(--smoke); text-transform: uppercase; }
+.provider-badge { color: var(--lilac); font-size: 15px; font-weight: 500; opacity: .82; display: flex; align-items: center; gap: 8px; }
+.provider-badge img { width: 18px; height: 18px; border-radius: 4px; }
+
+/* ---------- 通用 section ---------- */
+section { padding: 92px 0; }
+h2 {
+  color: var(--vellum); font-weight: 400;
+  font-size: clamp(30px, 3.4vw, 46px);
+  letter-spacing: -.03em; line-height: 1.15;
+  margin-bottom: 18px;
+}
+.section-sub { max-width: 560px; font-size: 17px; }
+.section-head { margin-bottom: 64px; }
+
+/* ---------- 特性栅格(纯排版,无卡片) ---------- */
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px 48px; }
+.feature svg { width: 26px; height: 26px; stroke: var(--iris); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 18px; }
+.feature h3 { color: var(--vellum); font-size: 18px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 8px; }
+.feature p { font-size: 15px; }
+
+/* ---------- 三种模式 ---------- */
+.modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.mode-card {
+  background: linear-gradient(180deg, rgba(79, 79, 128, .10), rgba(10, 10, 19, .35));
+  border: 1px solid rgba(79, 79, 128, .30);
+  border-radius: 24px;
+  padding: 26px 26px 30px;
+  transition: border-color .25s, transform .25s;
+}
+.mode-card:hover { border-color: rgba(97, 153, 246, .45); transform: translateY(-4px); }
+.mode-card img { width: 100%; border-radius: 10px; border: 1px solid rgba(79, 79, 128, .45); display: block; margin-bottom: 22px; }
+.mode-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; color: var(--iris); text-transform: uppercase; margin-bottom: 8px; }
+.mode-card h3 { color: var(--vellum); font-size: 19px; font-weight: 500; margin-bottom: 8px; }
+.mode-card p { font-size: 14.5px; }
+
+/* ---------- 双图展示 ---------- */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.duo .shot { width: 100%; height: auto; }
+.duo-copy h3 { color: var(--vellum); font-size: 26px; font-weight: 400; letter-spacing: -.02em; margin-bottom: 14px; }
+.duo-copy p { font-size: 16px; margin-bottom: 14px; }
+.duo-list { list-style: none; margin-top: 22px; }
+.duo-list li { padding: 12px 0; border-top: 1px solid rgba(79, 79, 128, .25); font-size: 15px; display: flex; gap: 12px; }
+.duo-list li::before { content: "→"; color: var(--iris); flex-shrink: 0; }
+
+/* ---------- 隐私 ---------- */
+.privacy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.privacy-card {
+  border-radius: 24px; padding: 36px;
+  border: 1px solid rgba(79, 79, 128, .30);
+  background: linear-gradient(180deg, rgba(79, 79, 128, .08), transparent);
+}
+.privacy-card.stays { border-color: rgba(97, 153, 246, .30); background: linear-gradient(180deg, rgba(97, 153, 246, .07), transparent); }
+.privacy-card h3 { color: var(--vellum); font-size: 17px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.privacy-card h3 svg { width: 18px; height: 18px; stroke: var(--iris); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.privacy-card ul { list-style: none; }
+.privacy-card li { padding: 9px 0; font-size: 15px; border-top: 1px solid rgba(79, 79, 128, .18); }
+.privacy-card li:first-child { border-top: none; }
+
+/* ---------- 定位(它不是) ---------- */
+.not-list { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.not-chip {
+  border: 1px solid rgba(79, 79, 128, .4); border-radius: 100px;
+  padding: 9px 20px; font-size: 14.5px; color: var(--ash);
+}
+
+/* ---------- 构建 ---------- */
+.build-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.term {
+  background: var(--graphite);
+  border: 1px solid rgba(79, 79, 128, .35);
+  border-radius: 14px; overflow: hidden;
+  font-family: var(--font-mono); font-size: 13.5px;
+}
+.term-bar { display: flex; gap: 7px; padding: 13px 16px; border-bottom: 1px solid rgba(79, 79, 128, .25); }
+.term-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--charcoal); }
+.term pre { padding: 22px 24px; color: var(--lilac); overflow-x: auto; line-height: 1.9; }
+.term .c { color: var(--smoke); }
+.term .p { color: var(--iris); }
+.req-list { list-style: none; margin-top: 26px; }
+.req-list li { padding: 10px 0; border-top: 1px solid rgba(79, 79, 128, .25); font-size: 15px; display: flex; justify-content: space-between; gap: 16px; }
+.req-list li b { color: var(--lilac); font-weight: 500; }
+.status-pill {
+  display: inline-block; font-family: var(--font-mono); font-size: 12px;
+  border: 1px solid rgba(97, 153, 246, .5); color: var(--iris);
+  border-radius: 100px; padding: 5px 14px; margin-bottom: 20px; letter-spacing: .08em;
+}
+
+/* ---------- 页脚 ---------- */
+footer {
+  border-top: 1px solid rgba(79, 79, 128, .22);
+  padding: 44px 0 56px;
+}
+.footer-inner { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; font-size: 14px; color: var(--smoke); }
+.footer-inner a { color: var(--ash); text-decoration: none; }
+.footer-inner a:hover { color: var(--vellum); }
+.footer-inner .right { margin-left: auto; }
+
+@media (max-width: 960px) {
+  .hero-grid, .duo, .privacy-grid, .build-grid { grid-template-columns: 1fr; }
+  .features, .modes-grid { grid-template-columns: 1fr; }
+  .hero { padding-top: 150px; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="cosmos"></div>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="brand" href="#">
+      <img src="assets/appicon.png" alt="LanguageAgent 图标">
+      <span>LanguageAgent</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#modes">三种模式</a>
+      <a href="#privacy">隐私边界</a>
+      <a href="#build">自行构建</a>
+    </div>
+    <a class="btn btn-solid btn-sm" href="https://github.com/mellivora-tech/mellivora-language-agent">GitHub</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <canvas class="hero-gl" aria-hidden="true"></canvas>
+  <div class="hero-aurora" aria-hidden="true"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="m1"></i><i class="m2"></i><i class="m3"></i></div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">macOS · 菜单栏常驻 · 本地优先</div>
+      <h1>读英文文档时,<br>家教就<em>在菜单栏</em>里。</h1>
+      <p class="hero-sub">不用打开新的聊天窗口重新解释上下文。LanguageAgent 驻留在菜单栏,记住你们的对话,随时问词、问句、练表达、改写法。</p>
+      <div class="hero-ctas">
+        <a class="btn btn-solid" href="#build">从源码构建</a>
+        <a class="btn btn-ghost" href="https://github.com/mellivora-tech/mellivora-language-agent">GitHub ↗</a>
+      </div>
+      <p class="hero-note">$ make app &nbsp;→&nbsp; LanguageAgent.app</p>
+    </div>
+    <div class="hero-shot">
+      <video class="shot" autoplay muted loop playsinline preload="metadata" width="380"
+             poster="assets/hero-poster.png"
+             aria-label="LanguageAgent 演示:输入框在打字时聚焦放大,Tutor 模式逐句批改英文并流式作答">
+        <source src="assets/hero-loop.webm" type="video/webm">
+        <source src="assets/hero-loop.mp4" type="video/mp4">
+        <img src="assets/hero-poster.png" alt="LanguageAgent 对话窗:输入框放大,Tutor 模式批改英文">
+      </video>
+    </div>
+  </div>
+</header>
+
+<div class="providers">
+  <div class="wrap providers-inner">
+    <span class="providers-label">BYO API Key · 任选供应商</span>
+    <span class="provider-badge">DeepSeek</span>
+    <span class="provider-badge">智谱 GLM</span>
+    <span class="provider-badge">Kimi (Moonshot)</span>
+    <span class="provider-badge">Ollama · 本地免 Key</span>
+    <span class="provider-badge">任意 OpenAI 兼容端点</span>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Capabilities</div>
+      <h2>一个常驻窗口,装下整个学习闭环</h2>
+      <p class="section-sub">它刻意不做词典、不做课程、不做打卡。只做一件事:让「想问一下英语」这件事的成本低到忽略不计。</p>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M8 8v9a3 3 0 0 0 6 0V8"/></svg>
+        <h3>菜单栏常驻</h3>
+        <p>左键图标即开对话窗,浮在最上层。读到生词、写到一半的句子,切过去问完就走,不打断心流。</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <h3>记得聊过什么</h3>
+        <p>近期轮次原样带上,更早的历史自动摘要。长对话不断片,前面教过的表达后面会点名复用。</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="19" cy="17" r="2.6"/><path d="M21 19.2 23 21"/></svg>
+        <h3>选中即问</h3>
+        <p>在对话里划选任何词句,结合前后文给出「这个词在这句话里」的讲解,而不是词典释义罗列。</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path d="M16.5 9.5a4 4 0 0 1 0 5"/></svg>
+        <h3>系统发音</h3>
+        <p>直接用 macOS 系统 TTS 朗读单词和句子,可调音色语速。不下载语音包,不装运行时。</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>
+        <h3>生词本</h3>
+        <p>取词讲解一键收藏,连同语境句子一起沉淀。支持搜索、朗读、复制和 JSON 导出。</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+        <h3>本地 JSON 存储</h3>
+        <p>对话、生词、配置全是可读可备份的纯文本 JSON。没有账号体系,没有云端同步,没有黑箱。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="modes">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Three Modes</div>
+      <h2>练、问、改,各有一位对症的老师</h2>
+      <p class="section-sub">同一张脸,三种教法。窗口底部一键切换,上下文各自独立。</p>
+    </div>
+    <div class="modes-grid">
+      <div class="mode-card">
+        <img src="assets/chat-english.png" alt="Practice 模式:纯英文对话,每轮至多一处简洁纠错">
+        <div class="mode-tag">Practice</div>
+        <h3>纯英文沉浸</h3>
+        <p>先自然聊起来,再顺手纠一处最重要的错。纠正用简单英文解释,不以打断表达为代价。</p>
+      </div>
+      <div class="mode-card">
+        <img src="assets/chat-tutor.png" alt="Tutor 模式:中文讲解,结构化批改错句">
+        <div class="mode-tag">Tutor</div>
+        <h3>双语家教</h3>
+        <p>知识问题给结构化中文讲解配地道例句;错句直接当教学现场,三段式批改讲清为什么。</p>
+      </div>
+      <div class="mode-card">
+        <img src="assets/chat-polish.png" alt="Polish 模式:润色英文并逐条说明改动">
+        <div class="mode-tag">Polish</div>
+        <h3>写作润色</h3>
+        <p>贴英文改成自然地道的版本,或直接用中文描述想说什么。改动逐条说明,改完可直接发送。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap duo">
+    <div>
+      <img class="shot" src="assets/chat-sidebar.png" alt="展开侧栏的 LanguageAgent:会话历史列表与搜索">
+    </div>
+    <div class="duo-copy">
+      <div class="eyebrow">History & Words</div>
+      <h3>对话有历史,生词有去处</h3>
+      <p>侧栏里是带标题的会话列表,可搜索、可回看,左缘刻度轨一瞥定位到任何一轮。</p>
+      <p>聊到的好表达随手收藏进生词本,讲解和出处句子一起存。</p>
+      <ul class="duo-list">
+        <li>会话自动命名,按最近使用排序</li>
+        <li>生词连语境收藏,导出 JSON 随便迁移</li>
+        <li>窗口大小、侧栏状态、外观语言都记住</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Privacy Boundary</div>
+      <h2>没有账号,没有云,边界写得清清楚楚</h2>
+      <p class="section-sub">唯一离开这台 Mac 的数据,是发给你自己配置的 LLM 供应商的请求内容。</p>
+    </div>
+    <div class="privacy-grid">
+      <div class="privacy-card">
+        <h3><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12-4 4m4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>会发给供应商的</h3>
+        <ul>
+          <li>你发出的聊天消息</li>
+          <li>长会话续聊所需的历史摘要</li>
+          <li>取词讲解时的选中词句与上下文</li>
+          <li>所选模型与请求参数</li>
+        </ul>
+      </div>
+      <div class="privacy-card stays">
+        <h3><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>永远留在本地的</h3>
+        <ul>
+          <li>全部对话文件与生词本</li>
+          <li>API Key(config.json,0600 权限)</li>
+          <li>设置与运行日志</li>
+          <li>麦克风权限 — 从不请求</li>
+        </ul>
+      </div>
+    </div>
+    <div class="not-list">
+      <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;color:var(--smoke);align-self:center;">它刻意不是:</span>
+      <span class="not-chip">词典</span>
+      <span class="not-chip">课程平台</span>
+      <span class="not-chip">SRS 打卡应用</span>
+      <span class="not-chip">云服务</span>
+      <span class="not-chip">通用 ChatGPT 客户端</span>
+    </div>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap build-grid">
+    <div>
+      <div class="eyebrow">Build It Yourself</div>
+      <h2>开源,实验中,欢迎折腾</h2>
+      <span class="status-pill">STATUS: EXPERIMENTAL</span>
+      <p style="margin-bottom:6px;">还没有公证签名的发行版,目前从源码构建。Makefile 一把梭:</p>
+      <ul class="req-list">
+        <li><b>系统</b>macOS 15.0+</li>
+        <li><b>芯片</b>Apple Silicon (arm64)</li>
+        <li><b>工具链</b>Swift / Command Line Tools</li>
+        <li><b>模型</b>任一 OpenAI 兼容 Key,或本地 Ollama</li>
+        <li><b>协议</b>MIT License</li>
+      </ul>
+    </div>
+    <div class="term">
+      <div class="term-bar"><i></i><i></i><i></i></div>
+      <pre><span class="c"># 克隆后构建并运行</span>
+<span class="p">$</span> make app
+✅ build/LanguageAgent.app 已就绪
+
+<span class="p">$</span> open build/LanguageAgent.app
+
+<span class="c"># 离线单元测试 / Swift 6 类型检查</span>
+<span class="p">$</span> make test
+<span class="p">$</span> make swift6-typecheck</pre>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <a class="brand" href="#"><img src="assets/appicon.png" alt="" style="width:22px;height:22px;border-radius:6px;"><span style="font-size:14px;">LanguageAgent</span></a>
+    <span>MIT License · 本地优先 · 实验性项目</span>
+    <div class="right">
+      <a href="https://github.com/mellivora-tech/mellivora-language-agent">GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/mellivora-tech/mellivora-language-agent/blob/main/PRIVACY.md">隐私说明</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// prefers-reduced-motion:不自动播放,停在 poster 帧
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduceMotion) {
+  document.querySelectorAll('video[autoplay]').forEach(v => {
+    v.removeAttribute('autoplay');
+    v.pause();
+  });
+}
+
+// Hero 背景:WebGL 优先(色场 + 鼠标烟粒子),失败退回 CSS 光雾
+(function () {
+  const hero = document.querySelector('.hero');
+  if (!hero || reduceMotion) return;
+  const aurora = document.querySelector('.hero-aurora');
+  const canvas = document.querySelector('.hero-gl');
+  if (canvas && initHeroGL(canvas, hero)) {
+    if (aurora) aurora.style.display = 'none'; // WebGL 接管,CSS 光雾退场
+    return;
+  }
+  if (canvas) canvas.style.display = 'none';
+  if (!aurora) return;
+  initCssAurora(aurora, hero);
+})();
+
+// ---------- WebGL:连续色场(全屏 quad)+ 鼠标浓烟(gl.POINTS 粒子) ----------
+function initHeroGL(canvas, hero) {
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false });
+  if (!gl) return false;
+  const DPR = Math.min(devicePixelRatio || 1, 1.5);
+
+  function makeProgram(vsSrc, fsSrc) {
+    const compile = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s);
+      return s;
+    };
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vsSrc));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fsSrc));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw gl.getProgramInfoLog(p);
+    return p;
+  }
+
+  // --- 色场:深色蓝紫渐变 + 多层漂移柔焦光斑 ---
+  let fieldProg;
+  try {
+    fieldProg = makeProgram(
+      `attribute vec2 aPos; varying vec2 vUv;
+       void main(){ vUv = aPos * .5 + .5; gl_Position = vec4(aPos, 0., 1.); }`,
+      `precision mediump float;
+       varying vec2 vUv;
+       uniform vec2 uRes; uniform float uT;
+       vec4 blob(vec2 uv, vec2 p, float r, vec3 col, float opacity, float seed, float aspect){
+         vec2 d = uv - p; d.x *= aspect;
+         d += vec2(sin(uT*.23+seed), cos(uT*.19+seed*1.7)) * .018;   // 缓慢形变
+         float a = smoothstep(r, r*.06, length(d));
+         return vec4(col, a * opacity);
+       }
+       void main(){
+         vec2 uv = vUv; float aspect = uRes.x / uRes.y;
+         // 底色:近黑 → 深靛蓝,保持原来的主体色
+         vec3 col = mix(vec3(.055,.042,.11), vec3(.033,.037,.10), clamp(uv.x*.55+uv.y*.45, 0., 1.));
+         col = mix(col, vec3(.075,.065,.16), smoothstep(.08,.94,uv.x)*.22);
+         // 光斑使用屏幕混合,在深色底上形成柔和辉光
+         vec4 b;
+         b = blob(uv, vec2(.12+.10*sin(uT/47.*6.2832),       .13+.07*cos(uT/39.*6.2832)),       .48, vec3(.18,.72,.96), .36, 0.0, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         b = blob(uv, vec2(.76+.12*sin(uT/41.*6.2832+2.4),   .17+.08*cos(uT/33.*6.2832+1.6)),   .41, vec3(.40,.48,.98), .40, 2.4, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         b = blob(uv, vec2(.86+.09*sin(uT/35.*6.2832+5.0),   .54+.11*cos(uT/29.*6.2832+3.3)),   .34, vec3(.82,.30,.90), .36, 5.0, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         b = blob(uv, vec2(.49+.15*sin(uT/53.*6.2832+4.2),   .84+.08*cos(uT/43.*6.2832+7.1)),   .43, vec3(.30,.28,.92), .42, 4.2, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         b = blob(uv, vec2(.10+.08*sin(uT/59.*6.2832+1.2),   .82+.07*cos(uT/37.*6.2832+2.8)),   .44, vec3(.12,.58,.76), .30, 1.2, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         b = blob(uv, vec2(.28+.13*sin(uT/67.*6.2832+6.2),   .66+.09*cos(uT/51.*6.2832+8.4)),   .34, vec3(.96,.30,.60), .18, 6.2, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         // 中央留一层很淡的靛紫雾,减少硬边
+         b = blob(uv, vec2(.48+.08*sin(uT/61.*6.2832+3.0),   .51+.07*cos(uT/47.*6.2832+4.4)),   .58, vec3(.50,.30,.82), .18, 3.0, aspect);
+         col = 1. - (1. - col) * (1. - b.rgb * b.a);
+         gl_FragColor = vec4(col, 1.);
+       }`);
+  } catch (e) { return false; }
+
+  // --- 烟粒子:点精灵,加法混合 ---
+  let smokeProg;
+  try {
+    smokeProg = makeProgram(
+      `attribute vec2 aPos; attribute float aSize; attribute float aAlpha; attribute float aSeed;
+       uniform vec2 uRes;
+       varying float vAlpha; varying float vSeed;
+       void main(){
+         vAlpha = aAlpha; vSeed = aSeed;
+         vec2 clip = aPos / uRes * 2. - 1.;
+         gl_Position = vec4(clip.x, -clip.y, 0., 1.);
+         gl_PointSize = aSize;
+       }`,
+      `precision mediump float;
+       varying float vAlpha; varying float vSeed;
+       void main(){
+         float d = length(gl_PointCoord - .5) * 2.;
+         float a = smoothstep(1., .15, d); a *= a;
+         vec3 col = mix(vec3(.30,.76,1.0), vec3(.78,.38,1.0), smoothstep(0., .72, vSeed));
+         col = mix(col, vec3(1.0,.34,.72), smoothstep(.66, 1.0, vSeed));
+         gl_FragColor = vec4(col * a * vAlpha, 0.);
+       }`);
+  } catch (e) { return false; }
+
+  // quad 缓冲
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  // 粒子池(CPU 模拟,每帧写回)
+  const MAX = 180, STRIDE = 5; // x,y,size,alpha,seed
+  const SMOKE_ALPHA = .045;
+  const buf = new Float32Array(MAX * STRIDE);
+  const parts = [];
+  for (let i = 0; i < MAX; i++) parts.push({ x: 0, y: 0, vx: 0, vy: 0, age: 0, ttl: 0, size: 0, seed: 0 });
+  let cursor = 0;
+  const smokeBuf = gl.createBuffer();
+
+  // 鼠标跟踪(文档坐标)
+  let mx = innerWidth * .62, my = 320, pmx = mx, pmy = my;
+  addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY + scrollY; }, { passive: true });
+
+  let W = 0, H = 0;
+  function resize() {
+    W = hero.clientWidth; H = hero.clientHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  resize();
+  addEventListener('resize', resize, { passive: true });
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  function emit(x, y, mvx, mvy) {
+    const p = parts[cursor]; cursor = (cursor + 1) % MAX;
+    p.x = x + rand(-8, 8); p.y = y + rand(-8, 8);
+    p.vx = mvx * .22 + rand(-14, 14);       // 继承一点鼠标速度:搅动
+    p.vy = mvy * .22 + rand(-26, -8);       // 偏上浮:烟往上升
+    p.age = 0; p.ttl = rand(1.5, 2.8);
+    p.size = rand(60, 155);
+    p.seed = Math.random();
+  }
+
+  const smooth = t => t * t * (3 - 2 * t);
+  let last = performance.now(), raf = 0;
+
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, .05); last = now;
+    const t = now / 1000;
+
+    // 沿鼠标轨迹插值发射,速度越快粒子越多
+    const dx = mx - pmx, dy = my - pmy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > .5) {
+      const n = Math.min(5, 1 + dist * .045);
+      for (let i = 0; i < n; i++) {
+        const f = i / n;
+        emit(pmx + dx * f, pmy + dy * f, dx * 60, dy * 60);
+      }
+    }
+    pmx = mx; pmy = my;
+
+    // 模拟:上浮 + 翻腾扰动 + 阻尼 + 生命周期内膨胀
+    for (let i = 0; i < MAX; i++) {
+      const p = parts[i], o = i * STRIDE;
+      if (p.age >= p.ttl) { buf[o + 3] = 0; continue; }
+      p.age += dt;
+      const pr = p.age / p.ttl;
+      p.vx += Math.sin(t * 2.1 + p.seed * 40) * 26 * dt;
+      p.vy += (-10 + Math.cos(t * 1.7 + p.seed * 31) * 20) * dt; // 浮力 + 侧摆
+      p.vx *= (1 - 1.6 * dt); p.vy *= (1 - 1.6 * dt);
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const alpha = pr < .22 ? smooth(pr / .22) : 1 - smooth((pr - .22) / .78);
+      buf[o] = p.x; buf[o + 1] = p.y;
+      buf[o + 2] = p.size * (.55 + pr * .9) * DPR;
+      buf[o + 3] = alpha * SMOKE_ALPHA;   // 单粒子更淡,避免快速移动时过曝
+      buf[o + 4] = p.seed;
+    }
+
+    // 画色场
+    gl.disable(gl.BLEND);
+    gl.useProgram(fieldProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    const aPosF = gl.getAttribLocation(fieldProg, 'aPos');
+    gl.enableVertexAttribArray(aPosF);
+    gl.vertexAttribPointer(aPosF, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(gl.getUniformLocation(fieldProg, 'uRes'), W, H);
+    gl.uniform1f(gl.getUniformLocation(fieldProg, 'uT'), t);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // 画烟(加法混合)
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.useProgram(smokeProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, buf, gl.DYNAMIC_DRAW);
+    const aPos = gl.getAttribLocation(smokeProg, 'aPos');
+    const aSize = gl.getAttribLocation(smokeProg, 'aSize');
+    const aAlpha = gl.getAttribLocation(smokeProg, 'aAlpha');
+    const aSeed = gl.getAttribLocation(smokeProg, 'aSeed');
+    gl.enableVertexAttribArray(aPos);
+    gl.enableVertexAttribArray(aSize);
+    gl.enableVertexAttribArray(aAlpha);
+    gl.enableVertexAttribArray(aSeed);
+    const B = 4;
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, STRIDE * B, 0);
+    gl.vertexAttribPointer(aSize, 1, gl.FLOAT, false, STRIDE * B, 2 * B);
+    gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, STRIDE * B, 3 * B);
+    gl.vertexAttribPointer(aSeed, 1, gl.FLOAT, false, STRIDE * B, 4 * B);
+    gl.uniform2f(gl.getUniformLocation(smokeProg, 'uRes'), W, H);
+    gl.drawArrays(gl.POINTS, 0, MAX);
+
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+  return true;
+}
+
+// ---------- CSS 兜底:三层云漂移 + 三层鼠标浓烟 ----------
+function initCssAurora(aurora, hero) {
+  const $ = s => aurora.querySelector(s);
+  const TAU = Math.PI * 2;
+  const clouds = [
+    { el: $('.c1'), w: 550, h: 380, cx: .26, cy: .32, ax: .15, ay: .11, px: 37, py: 29, ph: 0 },
+    { el: $('.c2'), w: 450, h: 320, cx: .72, cy: .58, ax: .13, ay: .15, px: 43, py: 31, ph: 2.1 },
+    { el: $('.c3'), w: 700, h: 450, cx: .50, cy: .82, ax: .19, ay: .09, px: 53, py: 41, ph: 4.2 },
+  ];
+  const m1 = $('.m1'), m2 = $('.m2'), m3 = $('.m3');
+  let tx = innerWidth * .62, ty = 320;
+  let x1 = tx, y1 = ty, x2 = tx, y2 = ty, x3 = tx, y3 = ty;
+  let vis = 0, lastMove = -1e9;
+  addEventListener('mousemove', e => {
+    tx = e.clientX; ty = e.clientY + scrollY;
+    lastMove = performance.now();
+  }, { passive: true });
+  let W = innerWidth, H = hero.offsetHeight;
+  addEventListener('resize', () => { W = innerWidth; H = hero.offsetHeight; }, { passive: true });
+  (function tick(now) {
+    const t = now / 1000;
+    for (const c of clouds) {
+      const x = (c.cx + c.ax * Math.sin(t / c.px * TAU + c.ph)) * W - c.w;
+      const y = (c.cy + c.ay * Math.cos(t / c.py * TAU + c.ph * 1.7)) * H - c.h;
+      c.el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
+    vis += (((now - lastMove) < 2500 ? 1 : 0) - vis) * (vis < .5 ? .06 : .015);
+    x1 += (tx - x1) * .075; y1 += (ty - y1) * .075;
+    x2 += (tx - x2) * .035; y2 += (ty - y2) * .035;
+    x3 += (tx - x3) * .018; y3 += (ty - y3) * .018;
+    const w1x = Math.sin(t * .9) * 14, w1y = Math.cos(t * 1.3) * 10;
+    const w2x = Math.sin(t * .6 + 2) * 26, w2y = Math.cos(t * .8 + 1) * 20;
+    const w3x = Math.sin(t * .4 + 4) * 40, w3y = Math.cos(t * .55 + 3) * 30;
+    m1.style.transform = `translate3d(${x1 + w1x - 450}px, ${y1 + w1y - 340}px, 0)`;
+    m2.style.transform = `translate3d(${x2 + w2x - 625}px, ${y2 + w2y - 440}px, 0)`;
+    m3.style.transform = `translate3d(${x3 + w3x - 800}px, ${y3 + w3y - 550}px, 0)`;
+    m1.style.opacity = vis;
+    m2.style.opacity = vis * .85;
+    m3.style.opacity = vis * .7;
+    requestAnimationFrame(tick);
+  })(0);
+}
+</script>
+
+</body>
+</html>
