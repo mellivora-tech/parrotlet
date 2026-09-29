@@ -166,7 +166,7 @@ The app does not request microphone or speech-recognition permission.
 ## Current limitations
 
 - Experimental status; pre-1.0.
-- The app is signed with a self-signed certificate and **not notarized**: on other Macs, downloaded builds require right-click → Open. Proper Developer ID notarization is planned.
+- The app is signed with a self-signed certificate and **not notarized**: downloaded builds trigger a one-time Gatekeeper block — allow via **System Settings → Privacy & Security → Open Anyway**. Proper Developer ID notarization is planned.
 - Settings and UI copy are partly Chinese-first.
 - Apple Silicon only.
 
