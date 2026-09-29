@@ -26,7 +26,8 @@ cd site && python3 -m http.server 8765
 - `assets/hero-poster.png`:Hero 视频的 poster,从视频起始帧同管线裁出(保证与首帧构图一致)。
 - `assets/appicon.png`:应用图标(`assets/icon/AppIcon.iconset/icon_512x512.png` 的拷贝)。
 
-## 待办
+## 部署状态
 
-- 仓库目前 private,GitHub 外链对访客 404;仓库公开后即生效。
-- 有公证发行版后,把「从源码构建」CTA 换成下载按钮。
+- 已上线:GitHub Pages(Actions 部署流,`.github/workflows/pages.yml`,推 main 且 `site/**` 变动自动发布),
+  地址 https://mellivora-tech.github.io/parrotlet/
+- 下载 CTA 已挂 v0.1.0(未公证,页面注明右键打开);有公证发行版后去掉该提示并替换链接。

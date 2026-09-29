@@ -213,8 +213,8 @@ h2 {
 .feature h3 { color: var(--vellum); font-size: 18px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 8px; }
 .feature p { font-size: 15px; }
 
-/* ---------- 三种模式 ---------- */
-.modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+/* ---------- 两种模式 ---------- */
+.modes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 460px)); justify-content: center; gap: 28px; }
 .mode-card {
   background: linear-gradient(180deg, rgba(79, 79, 128, .10), rgba(10, 10, 19, .35));
   border: 1px solid rgba(79, 79, 128, .30);
@@ -309,9 +309,9 @@ footer {
     </a>
     <div class="nav-links">
       <a href="#features">功能</a>
-      <a href="#modes">三种模式</a>
+      <a href="#modes">两种模式</a>
       <a href="#privacy">隐私边界</a>
-      <a href="#build">自行构建</a>
+      <a href="#build">下载</a>
     </div>
     <a class="btn btn-solid btn-sm" href="https://github.com/mellivora-tech/parrotlet">GitHub</a>
   </div>
@@ -326,7 +326,7 @@ footer {
       <h1>读英文文档时,<br>家教就<em>在菜单栏</em>里。</h1>
       <p class="hero-sub">不用打开新的聊天窗口重新解释上下文。Parrotlet 驻留在菜单栏,记住你们的对话,随时问词、问句、练表达、改写法。</p>
       <div class="hero-ctas">
-        <a class="btn btn-solid" href="#build">从源码构建</a>
+        <a class="btn btn-solid" href="https://github.com/mellivora-tech/parrotlet-releases/releases/download/v0.1.0/Parrotlet-0.1.0.zip">下载 v0.1.0</a>
         <a class="btn btn-ghost" href="https://github.com/mellivora-tech/parrotlet">GitHub ↗</a>
       </div>
       <p class="hero-note">$ make app &nbsp;→&nbsp; Parrotlet.app</p>
@@ -418,9 +418,9 @@ footer {
 <section id="modes">
   <div class="wrap">
     <div class="section-head">
-      <div class="eyebrow">Three Modes</div>
-      <h2>练、问、改,各有一位对症的老师</h2>
-      <p class="section-sub">同一张脸,三种教法。窗口底部一键切换,上下文各自独立。</p>
+      <div class="eyebrow">Two Modes</div>
+      <h2>练与问,各有一位对症的老师</h2>
+      <p class="section-sub">同一张脸,两种教法。窗口底部一键切换;贴上英文不发问,自动当润色处理。</p>
     </div>
     <div class="modes-grid">
       <div class="mode-card">
@@ -433,13 +433,7 @@ footer {
         <img src="assets/chat-tutor.png" alt="Tutor 模式:中文讲解,结构化批改错句">
         <div class="mode-tag">Tutor</div>
         <h3>双语家教</h3>
-        <p>知识问题给结构化中文讲解配地道例句;错句直接当教学现场,三段式批改讲清为什么。</p>
-      </div>
-      <div class="mode-card">
-        <img src="assets/chat-polish.png" alt="Polish 模式:润色英文并逐条说明改动">
-        <div class="mode-tag">Polish</div>
-        <h3>写作润色</h3>
-        <p>贴英文改成自然地道的版本,或直接用中文描述想说什么。改动逐条说明,改完可直接发送。</p>
+        <p>知识问题给结构化中文讲解配地道例句;错句直接当教学现场,三段式批改讲清为什么;贴英文润色,改动逐条说明。</p>
       </div>
     </div>
   </div>
@@ -505,21 +499,25 @@ footer {
 <section id="build">
   <div class="wrap build-grid">
     <div>
-      <div class="eyebrow">Build It Yourself</div>
-      <h2>开源,实验中,欢迎折腾</h2>
+      <div class="eyebrow">Download</div>
+      <h2>下载即玩,一分钟开聊</h2>
       <span class="status-pill">STATUS: EXPERIMENTAL</span>
-      <p style="margin-bottom:6px;">还没有公证签名的发行版,目前从源码构建。Makefile 一把梭:</p>
+      <p style="margin-bottom:20px;">v0.1.0 公开预览版。尚未公证:解压后<b style="color:var(--lilac);font-weight:500;">右键 → 打开</b>(Gatekeeper 只提示一次),之后版本自动更新,不用再回这里。</p>
+      <div class="hero-ctas" style="margin-bottom:14px;">
+        <a class="btn btn-solid" href="https://github.com/mellivora-tech/parrotlet-releases/releases/download/v0.1.0/Parrotlet-0.1.0.zip">下载 Parrotlet-0.1.0.zip</a>
+        <a class="btn btn-ghost" href="https://github.com/mellivora-tech/parrotlet-releases/releases/tag/v0.1.0">发布说明 ↗</a>
+      </div>
+      <p class="hero-note">8.7 MB · 随包字体与图标 · 首次启动需填入你自己的 API Key</p>
       <ul class="req-list">
         <li><b>系统</b>macOS 15.0+</li>
         <li><b>芯片</b>Apple Silicon (arm64)</li>
-        <li><b>工具链</b>Swift / Command Line Tools</li>
         <li><b>模型</b>任一 OpenAI 兼容 Key,或本地 Ollama</li>
         <li><b>协议</b>MIT License</li>
       </ul>
     </div>
     <div class="term">
       <div class="term-bar"><i></i><i></i><i></i></div>
-      <pre><span class="c"># 克隆后构建并运行</span>
+      <pre><span class="c"># 开发者通道:克隆后构建并运行</span>
 <span class="p">$</span> make app
 ✅ build/Parrotlet.app 已就绪
 
