@@ -5,7 +5,8 @@
 #   → make app（SPM 构建 + 内嵌 Sparkle + 稳定证书签名）
 #   → zip → sign_update（EdDSA，私钥在本机 Keychain，公钥在 Info.plist SUPublicEDKey）
 #   → gh release 上传 zip → 更新 releases 仓库 appcast.xml 并推送
-# 完成后源码仓库会留下 Info.plist 的版本号改动，自行提交。
+#   → 官网 site/index.html 下载链接/版本文案/文件大小同步 + 源码仓库提交推送
+#     （Pages 部署流自动上线，全程零手动步骤）
 set -euo pipefail
 
 VERSION="${1:?用法: tools/release.sh <semver>，例: tools/release.sh 0.2.0}"
@@ -28,6 +29,8 @@ REL_DIR="build/release-checkout"
 ZIP="build/Parrotlet-$VERSION.zip"
 
 # ---- 1. 版本号 ----
+# 发版前的旧版本号：第 6 步同步官网下载链接时用它做查找替换
+OLD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Info.plist 2>/dev/null || echo "")"
 BUILD="$(date +%Y%m%d)"
 CUR="$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' Info.plist 2>/dev/null || echo 0)"
 if (( CUR >= BUILD )); then BUILD=$(( CUR + 1 )); fi
@@ -88,8 +91,28 @@ PYEOF
 git -C "$REL_DIR" add appcast.xml
 git -C "$REL_DIR" commit -qm "Parrotlet v$VERSION"
 git -C "$REL_DIR" push -q origin main
+
+# ---- 6. 官网同步（下载直链/版本文案/文件大小）+ 源码仓库提交推送 ----
+# site/index.html 里 3 处引用同一下载 URL、2 处版本文案；替换旧版本号全覆盖。
+# push 后 .github/workflows/pages.yml 自动部署，~1 分钟生效
+SITE="site/index.html"
+if [ -f "$SITE" ] && [ -n "$OLD_VERSION" ] && [ "$OLD_VERSION" != "$VERSION" ]; then
+    OLD_RE="$(print -r -- "$OLD_VERSION" | sed 's/\./\\./g')"   # 点号转义，按字面匹配
+    sed -i '' -e "s/v$OLD_RE/v$VERSION/g" -e "s/Parrotlet-$OLD_RE/Parrotlet-$VERSION/g" "$SITE"
+    SIZE_MB="$(awk "BEGIN{printf \"%.1f\", $LEN/1000000}")"
+    sed -i '' -e "s|<p class=\"hero-note\">[0-9.]* MB|<p class=\"hero-note\">$SIZE_MB MB|" "$SITE"
+    grep -q "Parrotlet-$VERSION.zip" "$SITE" \
+        && echo "==> 官网下载链接已同步 v$VERSION ($SIZE_MB MB)" \
+        || echo "⚠️ 官网未匹配到新链接，请人工检查 $SITE"
+fi
+git add Info.plist
+[ -f "$SITE" ] && git add "$SITE"
+if ! git diff --cached --quiet; then
+    git commit -qm "release: v$VERSION (build $BUILD)"
+    git push -q origin main
+    echo "==> 源码仓库已提交推送（官网 Pages ~1 分钟自动生效）"
+fi
 echo ""
 echo "✅ v$VERSION (build $BUILD) 已发布"
 echo "   appcast: https://raw.githubusercontent.com/$RELEASES_REPO/main/appcast.xml"
 echo "   （raw CDN 缓存 ~5 分钟，客户端稍后才能看到新版本）"
-echo "   别忘了提交源码仓库的 Info.plist 版本号改动"
