@@ -13,8 +13,8 @@
 #      （右边距必须先算够：两行卡放大 1.2x 向右溢出 146px）
 #
 # 放大锚点 = 输入卡左下角。卡片高度内容驱动：单行 163px / 两行 196px。
-#   ⚠️ 回弹峰值到 1.22x，所以放大画布按 1.22x 开（1022x198 / 1022x239），
-#      否则 z>1.20 时会把卡片边缘裁掉。
+#   ⚠️ 回弹峰值 = 1 + 幅度×1.1。当前幅度 0.07 → 峰值 1.077x（2026-09-22 从 0.20/1.22x 下调，
+#      对齐苹果动效规范的 5–8% 过冲）。放大画布仍按 1.22x 开 = 多留透明边，无害不换。
 #   单行卡 838x162 @ capture (80,1206) → pad 1022:198:0:36 → overlay (80,1170)
 #   两行卡 838x196 @ capture (80,1172) → pad 1022:239:0:43 → overlay (80,1129)
 #   切换点 4.70 / 6.22
@@ -43,18 +43,29 @@ rounded_pgm(out + "/winmask.pgm", 880, 1360, 30)   # 整窗圆角（从录制里
 rounded_pgm(out + "/cardA.pgm", 838, 162, 18)
 rounded_pgm(out + "/cardB.pgm", 838, 196, 18)
 
-# ---- 设计底：对齐官网 hero 那块的实际底色（实测 #1b1a39 上 → #242150 下 + 右上柔光）----
-# 为什么不用真实桌面：桌面壁纸的颜色没法跟页面的渐变+极光背景对齐，会在页面上读作一块亮斑。
+# ---- 设计底：对齐官网 cosmos 氛围层（index.html .cosmos 同款）----
+#   2026-09-22 从 #1b1a39→#242150 双色渐变换成官网多色系：
+#   基底 void#040407 → obsidian#0a0a13（22%–78% 平台）→ void
+#   + 右上 twilight 洗光 rgba(79,79,128,.38) / 左蓝洗光 rgba(35,48,96,.30) / 底靛洗光 rgba(28,26,66,.42)
 import math
 Wb, Hb = 1140, 1440
 yy, xx = np.mgrid[0:Hb, 0:Wb].astype(np.float32)
-t = yy / (Hb - 1)
-c0 = np.array([0x1b, 0x1a, 0x39], np.float32)
-c1 = np.array([0x24, 0x21, 0x50], np.float32)
-bg = c0[None, None, :] * (1 - t[..., None]) + c1[None, None, :] * t[..., None]
-gx, gy, gr = Wb * 0.86, Hb * 0.18, max(Wb, Hb) * 0.55
-gd = np.sqrt(((xx - gx) / gr) ** 2 + ((yy - gy) / gr) ** 2)
-bg += np.array([0x2a, 0x16, 0x3e], np.float32)[None, None, :] * (np.clip(1 - gd, 0, 1) ** 2 * 0.30)[..., None]
+# 基底：三段线性（官网 22%/78% 断点）
+void_c = np.array([0x04, 0x04, 0x07], np.float32)
+obs_c  = np.array([0x0a, 0x0a, 0x13], np.float32)
+ty = yy / (Hb - 1)
+lo = np.clip(ty / 0.22, 0, 1)
+hi = np.clip((ty - 0.78) / 0.22, 0, 1)
+bg = void_c[None,None,:]*(1-lo[...,None]) + obs_c[None,None,:]*lo[...,None]
+bg = bg*(1-hi[...,None]) + void_c[None,None,:]*hi[...,None]
+# 三色径向洗光：椭圆归一化距离，官网透明断点 62%/60%/65%
+def wash(cx, cy, rx, ry, color, alpha, stop):
+    d = np.sqrt(((xx-cx)/rx)**2 + ((yy-cy)/ry)**2)
+    w = np.clip(1 - d/stop, 0, 1) * alpha
+    return np.array(color, np.float32)[None,None,:] * w[...,None]
+bg += wash(Wb*0.82, Hb*-0.08, Wb*0.96, Hb*0.49, (79,79,128), 0.38, 0.62)
+bg += wash(Wb*0.08, Hb*0.12, Wb*0.79, Hb*0.43, (35,48,96),  0.30, 0.60)
+bg += wash(Wb*0.50, Hb*1.18, Wb*1.23, Hb*0.63, (28,26,66),  0.42, 0.65)
 with open(out + "/brandbg.ppm", "wb") as f:
     f.write(b"P6\n%d %d\n255\n" % (Wb, Hb))
     f.write(np.clip(bg, 0, 255).astype(np.uint8).tobytes())
@@ -65,11 +76,11 @@ def smooth(t0, t1):
     p = clamp(t0, t1)
     return f"pow({p}\\,2)*(3-2*{p})"
 def backout(t0, t1):
-    # easeOutBack：u=0→1 过冲到 1.1 再收回（配合 0.20 的幅度 → 峰值 1.22x）
+    # easeOutBack：u=0→1 过冲到 1.1 再收回（幅度 0.07 → 峰值 ≈1.077x）
     u = clamp(t0, t1)
     return f"(1+2.70158*pow(({u})-1\\,3)+1.70158*pow(({u})-1\\,2))"
 # 两次放大用回弹，两次缩回用平滑
-z = f"1.0+0.20*{backout(0.80,1.12)}-0.20*{smooth(6.22,6.42)}+0.20*{backout(9.40,9.72)}-0.20*{smooth(11.60,11.80)}"
+z = f"1.0+0.07*{backout(0.80,1.12)}-0.07*{smooth(6.22,6.42)}+0.07*{backout(9.40,9.72)}-0.07*{smooth(11.60,11.80)}"
 open(out + "/k_expr.txt","w").write(z)
 
 # 让位动画用的裁切 y：140 → 185（smoothstep，0.18s）

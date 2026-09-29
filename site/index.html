@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LanguageAgent — 菜单栏里的英语私教</title>
-<meta name="description" content="LanguageAgent 是一款驻留在 macOS 菜单栏的英语家教:接着上次的对话继续学,问词问句、批改润色,本地优先,自带 API Key。">
+<title>Parrotlet — 菜单栏里的英语私教</title>
+<meta name="description" content="Parrotlet 是一款驻留在 macOS 菜单栏的英语家教:接着上次的对话继续学,问词问句、批改润色,本地优先,自带 API Key。">
 <link rel="icon" type="image/png" href="assets/appicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -173,6 +173,18 @@ h1 em { font-style: normal; color: var(--iris); }
   max-width: 100%; height: auto;
 }
 
+/* ---------- 宣传片 ---------- */
+.film { padding: 40px 0 96px; }
+.film-frame {
+  max-width: 980px; margin: 0 auto;
+  /* 透明视频:无边框无底色,页面 cosmos 背景直接透上来 */
+}
+.film-frame video { display: block; width: 100%; height: auto; }
+.film .section-head { text-align: center; }
+.film .section-head .section-sub { margin: 0 auto; }
+.film .eyebrow { justify-content: center; }
+.film .eyebrow::after { content: ""; width: 22px; height: 1px; background: var(--iris); }
+
 /* ---------- 供应商条 ---------- */
 .providers {
   border-top: 1px solid rgba(79, 79, 128, .22);
@@ -292,8 +304,8 @@ footer {
 <nav>
   <div class="wrap nav-inner">
     <a class="brand" href="#">
-      <img src="assets/appicon.png" alt="LanguageAgent 图标">
-      <span>LanguageAgent</span>
+      <img src="assets/appicon.png" alt="Parrotlet 图标">
+      <span>Parrotlet</span>
     </a>
     <div class="nav-links">
       <a href="#features">功能</a>
@@ -301,7 +313,7 @@ footer {
       <a href="#privacy">隐私边界</a>
       <a href="#build">自行构建</a>
     </div>
-    <a class="btn btn-solid btn-sm" href="https://github.com/mellivora-tech/mellivora-language-agent">GitHub</a>
+    <a class="btn btn-solid btn-sm" href="https://github.com/mellivora-tech/parrotlet">GitHub</a>
   </div>
 </nav>
 
@@ -312,24 +324,43 @@ footer {
     <div>
       <div class="eyebrow">macOS · 菜单栏常驻 · 本地优先</div>
       <h1>读英文文档时,<br>家教就<em>在菜单栏</em>里。</h1>
-      <p class="hero-sub">不用打开新的聊天窗口重新解释上下文。LanguageAgent 驻留在菜单栏,记住你们的对话,随时问词、问句、练表达、改写法。</p>
+      <p class="hero-sub">不用打开新的聊天窗口重新解释上下文。Parrotlet 驻留在菜单栏,记住你们的对话,随时问词、问句、练表达、改写法。</p>
       <div class="hero-ctas">
         <a class="btn btn-solid" href="#build">从源码构建</a>
-        <a class="btn btn-ghost" href="https://github.com/mellivora-tech/mellivora-language-agent">GitHub ↗</a>
+        <a class="btn btn-ghost" href="https://github.com/mellivora-tech/parrotlet">GitHub ↗</a>
       </div>
-      <p class="hero-note">$ make app &nbsp;→&nbsp; LanguageAgent.app</p>
+      <p class="hero-note">$ make app &nbsp;→&nbsp; Parrotlet.app</p>
     </div>
     <div class="hero-shot">
       <video class="shot" autoplay muted loop playsinline preload="metadata" width="380"
              poster="assets/hero-poster.png"
-             aria-label="LanguageAgent 演示:输入框在打字时聚焦放大,Tutor 模式逐句批改英文并流式作答">
+             aria-label="Parrotlet 演示:输入框在打字时聚焦放大,Tutor 模式逐句批改英文并流式作答">
         <source src="assets/hero-loop.webm" type="video/webm">
         <source src="assets/hero-loop.mp4" type="video/mp4">
-        <img src="assets/hero-poster.png" alt="LanguageAgent 对话窗:输入框放大,Tutor 模式批改英文">
+        <img src="assets/hero-poster.png" alt="Parrotlet 对话窗:输入框放大,Tutor 模式批改英文">
       </video>
     </div>
   </div>
 </header>
+
+<section class="film" id="film">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The Film</div>
+      <h2>45 秒,看一个完整的故事</h2>
+      <p class="section-sub">从站会卡壳,到第二天一次打对。全程由这台 Mac 上的真实管线渲染。</p>
+    </div>
+    <div class="film-frame">
+      <video id="film-video" muted loop playsinline preload="none"
+             poster="assets/promo-poster.png"
+             aria-label="Parrotlet 宣传片:站会卡壳、AI 批改、用中文追问、第二天一次打对">
+        <source src="assets/promo-45s.webm" type="video/webm">
+        <source src="assets/promo-45s-hevc.mov" type="video/quicktime">
+        <source src="assets/promo-45s.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</section>
 
 <div class="providers">
   <div class="wrap providers-inner">
@@ -417,7 +448,7 @@ footer {
 <section>
   <div class="wrap duo">
     <div>
-      <img class="shot" src="assets/chat-sidebar.png" alt="展开侧栏的 LanguageAgent:会话历史列表与搜索">
+      <img class="shot" src="assets/chat-sidebar.png" alt="展开侧栏的 Parrotlet:会话历史列表与搜索">
     </div>
     <div class="duo-copy">
       <div class="eyebrow">History & Words</div>
@@ -490,9 +521,9 @@ footer {
       <div class="term-bar"><i></i><i></i><i></i></div>
       <pre><span class="c"># 克隆后构建并运行</span>
 <span class="p">$</span> make app
-✅ build/LanguageAgent.app 已就绪
+✅ build/Parrotlet.app 已就绪
 
-<span class="p">$</span> open build/LanguageAgent.app
+<span class="p">$</span> open build/Parrotlet.app
 
 <span class="c"># 离线单元测试 / Swift 6 类型检查</span>
 <span class="p">$</span> make test
@@ -503,10 +534,10 @@ footer {
 
 <footer>
   <div class="wrap footer-inner">
-    <a class="brand" href="#"><img src="assets/appicon.png" alt="" style="width:22px;height:22px;border-radius:6px;"><span style="font-size:14px;">LanguageAgent</span></a>
+    <a class="brand" href="#"><img src="assets/appicon.png" alt="" style="width:22px;height:22px;border-radius:6px;"><span style="font-size:14px;">Parrotlet</span></a>
     <span>MIT License · 本地优先 · 实验性项目</span>
     <div class="right">
-      <a href="https://github.com/mellivora-tech/mellivora-language-agent">GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/mellivora-tech/mellivora-language-agent/blob/main/PRIVACY.md">隐私说明</a>
+      <a href="https://github.com/mellivora-tech/parrotlet">GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/mellivora-tech/parrotlet/blob/main/PRIVACY.md">隐私说明</a>
     </div>
   </div>
 </footer>
@@ -520,6 +551,18 @@ if (reduceMotion) {
     v.pause();
   });
 }
+
+// 宣传片:进入视口自动播,离开暂停,省电省注意力
+(function () {
+  const v = document.getElementById('film-video');
+  if (!v || reduceMotion) return;
+  new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { v.play().catch(() => {}); }
+      else { v.pause(); }
+    });
+  }, { threshold: 0.35 }).observe(v);
+})();
 
 // Hero 背景:WebGL 优先(色场 + 鼠标烟粒子),失败退回 CSS 光雾
 (function () {
