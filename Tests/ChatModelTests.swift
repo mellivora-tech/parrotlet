@@ -23,6 +23,8 @@ let chatModelTests: [TestCase] = [
         try expect(zh.contains("half a sentence"), "被质疑时应一句带过、直接补内容")
         try expect(zh.contains("reuse it by name"), "已教过的表达应点名复用不重复展开")
         try expect(zh.contains("at most 3 points"), "排版应节制：每轮最多 3 个点")
+        try expect(zh.contains("LATEST message is always the immediate subject"), "最新消息优先于背景/旧目标")
+        try expect(zh.contains("bare English phrase"), "无问号的英文碎片也应按知识请求讲解")
     },
 
     TestCase(name: "chatPartner prompts: thread rule — 出题后下一句视为作答，先判语义") {
@@ -59,6 +61,42 @@ let chatModelTests: [TestCase] = [
         try expect(memory.contains("go on a business trip"), "已教表达应进入记忆")
         try expect(memory.contains("A2"), "水平评估应进入记忆")
         try expect(memory.contains("写英文工作邮件"), "用户目标应进入记忆")
+        // 结构：记忆块在前、用户原文殿后（33 字新问题被 1883 字记忆淹没的防线）
+        try expect(memory.contains("Background notes"), "记忆块应有背景/非任务清单标注")
+        try expect(memory.contains("may be outdated"), "目标应以旧快照口吻陈述，不用现在时")
+        if let boundary = memory.range(of: "=== User's new message ==="),
+           let mistake = memory.range(of: "31th → 31st") {
+            try expect(mistake.lowerBound < boundary.lowerBound, "记忆内容应在用户原文分界之前")
+        } else {
+            try expect(false, "应有用户原文分界标签")
+        }
+        try expect(memory.hasSuffix("msg28"), "用户原文必须是消息结尾（recency 最大）")
+        try expect(!memory.contains("Recorded"), "当天记忆不加年龄标注")
+    },
+
+    TestCase(name: "chat.buildMessages 隔日续聊时记忆块标注年龄") {
+        let now = Date()
+        let old = now.addingTimeInterval(-5 * 86400)
+        let turns = (0..<30).map { i in
+            DialogueTurn(role: i.isMultiple(of: 2) ? .user : .assistant, content: "msg\(i)",
+                         at: i < 10 ? old : now)
+        }
+        let summary = ConversationSummary(
+            brief: "A2", userGoal: "写英文工作邮件", title: "日期练习",
+            summarizedTurns: 10)
+        let messages = ChatViewModel.buildMessages(turns: turns, mode: .conversation,
+                                                   summary: summary, now: now)
+        let lastUser = messages.last(where: { $0.role == .user })?.content ?? ""
+        try expect(lastUser.contains("Recorded 5 days ago"), "隔 5 天的记忆块应标注 Recorded 5 days ago")
+        // 前一天（不满 48h）不标注
+        let recent = (0..<30).map { i in
+            DialogueTurn(role: i.isMultiple(of: 2) ? .user : .assistant, content: "msg\(i)",
+                         at: i < 10 ? now.addingTimeInterval(-86400) : now)
+        }
+        let recentMessages = ChatViewModel.buildMessages(turns: recent, mode: .conversation,
+                                                         summary: summary, now: now)
+        let recentUser = recentMessages.last(where: { $0.role == .user })?.content ?? ""
+        try expect(!recentUser.contains("Recorded"), "不满 48h 的记忆不加年龄标注")
     },
 
     TestCase(name: "chat.buildMessages excludes partial assistant turns from history") {
