@@ -250,7 +250,7 @@ struct SettingsView: View {
 
     private var generalPane: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // 单行 Section 不重复段头（行标签已说明内容），与 System Settings 惯例一致
+            // 外观 + 字号同卡片（System Settings 的「外观」分组惯例）
             section {
                 row(env.t(.sectionAppearance), sub: env.t(.appearanceSub)) {
                     Picker("", selection: Binding(
@@ -261,6 +261,19 @@ struct SettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+                row(env.t(.sectionFontSize), sub: env.t(.fontSizeSub)) {
+                    HStack(spacing: 8) {
+                        Slider(value: Bindable(env).fontScale, in: AppConfig.fontScaleRange)
+                            .frame(width: 180)
+                            .controlSize(.small)
+                        // 等宽数字：拖动时百分比跳动不抖版
+                        Text("\(Int((env.fontScale * 100).rounded()))%")
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, alignment: .trailing)
+                    }
                     .fixedSize()
                 }
             }

@@ -208,7 +208,7 @@ private struct ConversationView: View {
         .coordinateSpace(name: "chatRoot")
         .onGeometryChange(for: CGSize.self) { $0.size } action: { rootSize = $0 }
         // 根环境字体 = Inter 14：未显式指定字体的文字（消息正文/引用块）全部继承
-        .font(.eaFont(14))
+        .eaFont(14)
         // 取词讲解（原型）：划词浮「讲解」按钮 → 点击出独立面板卡片；
         // 卡片的显隐/放置/点外关闭全在 LookupPanelController，视图层只管触发按钮
         .onAppear {
@@ -223,7 +223,7 @@ private struct ConversationView: View {
                     lookup.performLookup(llm: env.llm, turns: vm.activeSession?.turns ?? [])
                 } label: {
                     Label(env.t(.lookupExplain), systemImage: "character.book.closed")
-                        .font(.eaFont(12, .body, weight: .medium))
+                        .eaFont(12, .body, weight: .medium)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                 }
@@ -293,7 +293,7 @@ private struct ConversationView: View {
         HStack(spacing: 14) {
             Button(action: toggleSidebar) {
                 Image(systemName: "sidebar.left")
-                    .font(.eaFont(13, .body, weight: .medium))
+                    .eaFont(13, .body, weight: .medium)
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
                     .contentShape(.rect)
@@ -303,7 +303,7 @@ private struct ConversationView: View {
             .help(env.t(.toggleSidebar))
 
             Text(vm.activeSession?.displayTitle(fallback: env.t(.newChat)) ?? env.t(.defaultChatTitle))
-                .font(.eaFont(13, .headline, weight: .semibold))
+                .eaFont(13, .headline, weight: .semibold)
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer()
@@ -315,7 +315,7 @@ private struct ConversationView: View {
             //     ActivationHelper.open(id: SceneID.settings, using: openWindow)
             // } label: {
             //     Text(Self.avatarInitial)
-            //         .font(.eaFont(10, .caption, weight: .semibold))
+            //         .eaFont(10, .caption, weight: .semibold)
             //         .foregroundStyle(.white)
             //         .frame(width: 24, height: 24)
             //         .background(Color.brown, in: Circle())
@@ -327,7 +327,7 @@ private struct ConversationView: View {
                 NSApp.keyWindow?.performClose(nil)
             } label: {
                 Image(systemName: "xmark")
-                    .font(.eaFont(13, .body, weight: .medium))
+                    .eaFont(13, .body, weight: .medium)
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
                     .contentShape(.rect)
@@ -580,7 +580,7 @@ private struct ConversationView: View {
     private func inputField(width: CGFloat) -> some View {
         TextField(vm.activeMode.placeholder, text: $vm.input, axis: .vertical)
             .textFieldStyle(.plain)
-            .font(.eaFont(14))
+            .eaFont(14)
             .lineLimit(1...4)
             .frame(width: max(120, width), alignment: .leading)
             .id(Int(width / 20))
@@ -595,7 +595,7 @@ private struct ConversationView: View {
             Task { await vm.send() }
         } label: {
             Image(systemName: "arrow.up.circle.fill")
-                .font(.eaFont(22, .title2))
+                .eaFont(22, .title2)
                 .foregroundStyle(vm.canSend ? Color.accentColor : Color.secondary.opacity(0.35))
         }
         .buttonStyle(.borderless)
@@ -644,7 +644,7 @@ private struct WelcomeView: View {
             // 单句问候：不用系统用户名（不可控、中文系统是全名直拼），
             // 陪练口吻取代助手口吻；这句英文本身就是空态的每日示范，须语法正确
             Text("What would you like to chat about today?")
-                .font(.eaFont(16, .title2, weight: .bold))
+                .eaFont(16, .title2, weight: .bold)
                 .foregroundStyle(Color.accentColor)
 
             VStack(alignment: .leading, spacing: 10) {
@@ -656,7 +656,7 @@ private struct WelcomeView: View {
                     } label: {
                         // 宽条圆角矩形（1:1 参考），非全圆角 Capsule
                         Text(starter)
-                            .font(.eaFont(12, .callout))
+                            .eaFont(12, .callout)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
                             .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 12))
@@ -715,9 +715,9 @@ private struct ModeMenuControl: View {
         } label: {
             HStack(spacing: 3) {
                 Text(selection.label)
-                    .font(.eaFont(13, .callout))
+                    .eaFont(13, .callout)
                 Image(systemName: "chevron.down")
-                    .font(.eaFont(11, .caption))
+                    .eaFont(11, .caption)
             }
             .foregroundStyle(.secondary)
             .padding(.horizontal, 6)
@@ -936,15 +936,15 @@ private struct ModeMenuItemRow: View {
         HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(mode.label)
-                    .font(.eaFont(12))
+                    .eaFont(12)
                 Text(mode.subtitle)
-                    .font(.eaFont(10, .caption))
+                    .eaFont(10, .caption)
                     .foregroundStyle(hovering ? Color.white.opacity(0.75) : .secondary)
             }
             Spacer()
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.eaFont(11, .body, weight: .semibold))
+                    .eaFont(11, .body, weight: .semibold)
             }
         }
         .foregroundStyle(hovering ? Color.white : .primary)
@@ -990,7 +990,7 @@ private struct TurnView: View, @MainActor Equatable {
                 if turn.deliveryStatus == .partial {
                     HStack(spacing: 8) {
                         Label(env.t(.replyInterrupted), systemImage: "exclamationmark.triangle")
-                            .font(.eaFont(10, .caption))
+                            .eaFont(10, .caption)
                             .foregroundStyle(.orange)
                         Button(env.t(.continueReply)) {
                             Task { await env.chat.continuePartialTurn(turn.id) }

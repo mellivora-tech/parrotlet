@@ -21,6 +21,7 @@ struct ParrotletApp: App {
         Window(appEnvironment.t(.chatWindowTitle), id: SceneID.chat) {
             ChatView()
                 .environment(appEnvironment)
+                .environment(\.eaFontScale, appEnvironment.fontScale)
         }
         .windowResizability(.contentSize)
         // 菜单栏工具窗：永远浮在顶层，不被其他窗口盖住
@@ -36,6 +37,7 @@ struct ParrotletApp: App {
         Window(appEnvironment.t(.wordBookTitle), id: SceneID.wordBook) {
             WordBookView()
                 .environment(appEnvironment)
+                .environment(\.eaFontScale, appEnvironment.fontScale)
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 620, height: 480)
@@ -43,6 +45,7 @@ struct ParrotletApp: App {
         Window(appEnvironment.t(.appMenuSettings), id: SceneID.settings) {
             SettingsView()
                 .environment(appEnvironment)
+                .environment(\.eaFontScale, appEnvironment.fontScale)
         }
         // System Settings (Tahoe) 风：无标题栏，红绿灯托管在侧栏列顶部
         .windowStyle(.hiddenTitleBar)

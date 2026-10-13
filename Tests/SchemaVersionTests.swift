@@ -21,6 +21,7 @@ let schemaVersionTests: [TestCase] = [
             try expectEqual(store.value.schemaVersion, AppConfig.currentSchemaVersion,
                             "读入即迁移：内存统一当前版本")
             try expectEqual(store.persistenceState, .normal, "老配置不得进恢复态")
+            try expectEqual(store.value.fontScale, 1.0, "老配置无 fontScale 键回默认（观感不变）")
 
             store.save(store.value)
             let raw = String(data: try Data(contentsOf: url), encoding: .utf8) ?? ""
@@ -86,12 +87,13 @@ let schemaVersionTests: [TestCase] = [
             let dir = try makeKeychainTestDir("schema-config-unknown-enum")
             defer { try? FileManager.default.removeItem(at: dir) }
             let url = dir.appendingPathComponent("config.json")
-            // 未来版本才可能出现的枚举值（appearance/language/speechRate/kind）
+            // 未来版本才可能出现的枚举值（appearance/language/speechRate/kind）+ 越界字号 + 已废弃枚举键
             try Data("""
                 {"activeProviderID":"deepseek",
                  "providers":[{"id":"deepseek","kind":"neuralLink","name":"D",
                                "baseURL":"https://api.deepseek.com/v1","model":"m"}],
-                 "appearance":"sepia","language":"klingon","speechRate":"ludicrous"}
+                 "appearance":"sepia","language":"klingon","speechRate":"ludicrous",
+                 "fontSize":"gigantic","fontScale":9.9}
                 """.utf8).write(to: url)
 
             let store = JSONStore<AppConfig>(url: url, defaultValue: AppConfig(activeProviderID: "", providers: []))
@@ -99,6 +101,7 @@ let schemaVersionTests: [TestCase] = [
             try expectEqual(store.value.appearance, .dark, "未知 appearance 回默认")
             try expectEqual(store.value.language, .auto, "未知 language 回默认")
             try expectEqual(store.value.speechRate, .standard, "未知 speechRate 回默认")
+            try expectEqual(store.value.fontScale, 1.3, "越界 fontScale 钳到上限；废弃的 fontSize 枚举键直接忽略")
             try expectEqual(store.value.providers.count, 1, "provider 列表不丢")
             try expectEqual(store.value.providers.first?.kind, .openAICompatible, "未知 kind 回兼容协议")
         }

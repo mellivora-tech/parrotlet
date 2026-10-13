@@ -127,6 +127,13 @@ let settingsTests: [TestCase] = [
             try expectEqual(vm.activeProviderID, "", "删光则全停用")
         }
     },
+
+    TestCase(name: "fontScale：默认 1.0 不缩放，越界钳回安全范围") {
+        try expectEqual(AppConfig.clampingFontScale(1.0), 1.0, "默认 = 标准")
+        try expectEqual(AppConfig.clampingFontScale(0.5), 0.85, "低于下限钳到 0.85")
+        try expectEqual(AppConfig.clampingFontScale(2.0), 1.3, "高于上限钳到 1.3")
+        try expect(AppConfig.fontScaleRange.contains(1.15), "旧「大」档等价值在范围内")
+    },
 ]
 
 /// 构造隔离的 SettingsViewModel（临时目录 + 空配置；seed 可选预置 provider 列表）

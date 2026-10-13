@@ -38,7 +38,7 @@ struct SessionSidebarView: View {
                 vm.startNewSession()
             } label: {
                 Image(systemName: "square.and.pencil")
-                    .font(.eaFont(13, .body, weight: .medium))
+                    .eaFont(13, .body, weight: .medium)
                     .foregroundStyle(.secondary)
                     .frame(width: 24, height: 22)
                     .contentShape(.rect)
@@ -56,11 +56,11 @@ struct SessionSidebarView: View {
     private var searchField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
-                .font(.eaFont(11, .callout))
+                .eaFont(11, .callout)
                 .foregroundStyle(SidebarDS.text3)
             TextField(env.t(.searchChats), text: $searchText)
                 .textFieldStyle(.plain)
-                .font(.eaFont(12, .callout))
+                .eaFont(12, .callout)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -94,7 +94,7 @@ struct SessionSidebarView: View {
 
     private func emptyLabel(_ text: String) -> some View {
         Text(text)
-            .font(.eaFont(11, .callout))
+            .eaFont(11, .callout)
             .foregroundStyle(SidebarDS.text3)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -120,7 +120,7 @@ private struct SessionRow: View {
         HStack(spacing: 6) {
             // 标题+时间一行：标题尾断让位，时间钉右端完整显示；超长标题悬停 tooltip 看全名
             Text(session.displayTitle(fallback: env.t(.newChat)))
-                .font(.eaFont(12, .callout, weight: active ? .semibold : .regular))
+                .eaFont(12, .callout, weight: active ? .semibold : .regular)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .help(session.displayTitle(fallback: env.t(.newChat)))
@@ -128,7 +128,7 @@ private struct SessionRow: View {
             if hovering {
                 Button(action: onDelete) {
                     Image(systemName: "xmark")
-                        .font(.eaFont(10, .caption, weight: .medium))
+                        .eaFont(10, .caption, weight: .medium)
                         .foregroundStyle(.secondary)
                         .frame(width: 18, height: 18)
                         .contentShape(.rect)
@@ -138,7 +138,7 @@ private struct SessionRow: View {
             } else {
                 Text(Self.relativeFormatter.localizedString(for: session.updatedAt,
                                                             relativeTo: Date()))
-                    .font(.eaFont(10, .caption))
+                    .eaFont(10, .caption)
                     .foregroundStyle(SidebarDS.text3)
                     .lineLimit(1)
                     .fixedSize()

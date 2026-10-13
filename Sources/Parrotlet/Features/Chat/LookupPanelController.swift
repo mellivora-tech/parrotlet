@@ -150,7 +150,8 @@ final class LookupPanelController: NSObject {
         p.hasShadow = true
         p.contentMinSize = CGSize(width: 240, height: 140)
         p.contentMaxSize = CGSize(width: 520, height: 560)
-        let hosting = NSHostingView(rootView: LookupCard(lookup: lookup).environment(env))
+        let hosting = NSHostingView(rootView: LookupCard(lookup: lookup)
+            .environment(env))
         // 清空 sizingOptions，尽量关掉 SwiftUI「理想尺寸→自动改窗口大小」的联动；
         // 真正防崩的是数据流单向：卡片是柔性布局（填满面板），任何窗口尺寸都合法，
         // 不回馈、不纠正——「约束 pass 循环探测器」异常（实测崩溃四连）失去发动机
@@ -260,12 +261,12 @@ struct LookupCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(lookup.selection)
-                    .font(.eaFont(16, .headline, weight: .semibold))
+                    .eaFont(16, .headline, weight: .semibold)
                     .lineLimit(2)
                 // 词性/搭配类型 chip：随结构化结果一起到位，loading 时不占位
                 if let tag = lookup.explanation?.posTag, !tag.isEmpty {
                     Text(tag)
-                        .font(.eaFont(11, .body, weight: .medium))
+                        .eaFont(11, .body, weight: .medium)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
                         .background(Color.accentColor.opacity(0.12), in: Capsule())
@@ -313,7 +314,7 @@ struct LookupCard: View {
             // 音标：弱化辅助信息，紧跟标题（不重复单词本身）
             if let phonetic = lookup.explanation?.phonetic, !phonetic.isEmpty {
                 Text(phonetic)
-                    .font(.eaFont(13))
+                    .eaFont(13)
                     .foregroundStyle(.secondary)
             }
             Divider()
@@ -345,6 +346,9 @@ struct LookupCard: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.08)))
         // 阴影由面板窗口（hasShadow，按内容透明度成型）提供，不再自绘
+        // 字号缩放在 body 内注入（而非 makePanel 一次性）：面板常驻复用，
+        // NSHostingView rootView 冻结于创建时，外部注入会锁死旧系数
+        .environment(\.eaFontScale, env.fontScale)
     }
 
     @ViewBuilder
@@ -354,7 +358,7 @@ struct LookupCard: View {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
                 Text(env.t(.lookupLoading))
-                    .font(.eaFont(12))
+                    .eaFont(12)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -370,14 +374,14 @@ struct LookupCard: View {
         case .error(let error):
             VStack(alignment: .leading, spacing: 8) {
                 Text(error.message)
-                    .font(.eaFont(12))
+                    .eaFont(12)
                     .foregroundStyle(error.style == .guidance ? Color.accentColor : Color.red)
                 if error.action != nil {
                     Button(env.t(.goToSettings)) {
                         WindowOpenerBridge.open(SceneID.settings)
                     }
                     .buttonStyle(.borderless)
-                    .font(.eaFont(12))
+                    .eaFont(12)
                 }
             }
         }
@@ -388,17 +392,17 @@ struct LookupCard: View {
     private func structuredBody(_ ex: LookupExplanation) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(ex.definition)
-                .font(.eaFont(14))
+                .eaFont(14)
                 .lineSpacing(3)
                 .textSelection(.enabled)
             if !ex.exampleEn.isEmpty {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(ex.exampleEn)
-                        .font(.eaFont(13))
+                        .eaFont(13)
                         .lineSpacing(2)
                     if !ex.exampleZh.isEmpty {
                         Text(ex.exampleZh)
-                            .font(.eaFont(12))
+                            .eaFont(12)
                             .foregroundStyle(.secondary)
                     }
                 }

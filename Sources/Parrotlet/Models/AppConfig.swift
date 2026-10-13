@@ -73,11 +73,16 @@ struct AppConfig: Codable, Sendable, Equatable {
     var systemVoiceID: String?
     /// 朗读语速（系统语音）；老配置无此键，兜底 .standard
     var speechRate: SpeechRate
+    /// 界面字号缩放系数（1 = 标准，即 \.eaFontScale 环境值）；老配置无此键兜底 1，
+    /// 越界值解码钳回 fontScaleRange（布局只验证过该跨度）。早期四档枚举键
+    /// fontSize 已废弃——枚举从未发版，读到直接忽略
+    var fontScale: Double
 
     init(activeProviderID: String, providers: [ProviderConfig],
          appearance: AppAppearance = .dark, language: AppLanguage = .auto,
          sidebarPinned: Bool = false,
          systemVoiceID: String? = nil, speechRate: SpeechRate = .standard,
+         fontScale: Double = 1.0,
          schemaVersion: Int = AppConfig.currentSchemaVersion) {
         self.schemaVersion = schemaVersion
         self.activeProviderID = activeProviderID
@@ -87,6 +92,7 @@ struct AppConfig: Codable, Sendable, Equatable {
         self.sidebarPinned = sidebarPinned
         self.systemVoiceID = systemVoiceID
         self.speechRate = speechRate
+        self.fontScale = fontScale
     }
 
     init(from decoder: Decoder) throws {
@@ -116,6 +122,14 @@ struct AppConfig: Codable, Sendable, Equatable {
         sidebarPinned = try c.decodeIfPresent(Bool.self, forKey: .sidebarPinned) ?? false
         systemVoiceID = try c.decodeIfPresent(String.self, forKey: .systemVoiceID)
         speechRate = (try? c.decode(SpeechRate.self, forKey: .speechRate)) ?? .standard
+        fontScale = Self.clampingFontScale((try? c.decode(Double.self, forKey: .fontScale)) ?? 1.0)
+    }
+
+    /// 字号安全范围：设置页 Slider 与解码钳制同源取值
+    static let fontScaleRange: ClosedRange<Double> = 0.85...1.3
+
+    static func clampingFontScale(_ v: Double) -> Double {
+        min(max(v, fontScaleRange.lowerBound), fontScaleRange.upperBound)
     }
 
     var activeProvider: ProviderConfig? {

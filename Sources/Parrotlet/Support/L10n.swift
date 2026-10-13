@@ -30,6 +30,7 @@ enum L10n {
         // 设置
         case search, noResults, paneGeneral, paneServices, paneAbout
         case sectionAppearance, appearanceSub, sectionLanguage, languageSub
+        case sectionFontSize, fontSizeSub
         case sectionLaunch, launchAtLogin, sectionData, dataFolder, dataFolderSub, revealInFinder, runLog, runLogSub
         case sectionUpdate, updateAutoCheck, updateCurrentVersion, updateCheckNow
         case wordBookTitle, emptyWordBook, copyExplanation, exportWordBook
@@ -104,6 +105,8 @@ enum L10n {
         case .paneAbout: pair = ("关于", "About")
         case .sectionAppearance: pair = ("外观", "Appearance")
         case .appearanceSub: pair = ("「自动」跟随系统外观切换", "“Auto” follows the system appearance")
+        case .sectionFontSize: pair = ("字号", "Font Size")
+        case .fontSizeSub: pair = ("聊天与界面文字大小，即时生效", "Chat & interface text size, applies instantly")
         case .appearanceAuto: pair = ("自动", "Auto")
         case .appearanceLight: pair = ("浅色", "Light")
         case .appearanceDark: pair = ("深色", "Dark")

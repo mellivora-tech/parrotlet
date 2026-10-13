@@ -107,11 +107,11 @@ struct ErrorBanner: View {
                 onDismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.eaFont(10, .caption, weight: .semibold))
+                    .eaFont(10, .caption, weight: .semibold)
             }
             .buttonStyle(.borderless)
         }
-        .font(.eaFont(12, .callout))
+        .eaFont(12, .callout)
         .foregroundStyle(error.style == .guidance ? Color.accentColor : Color.red)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

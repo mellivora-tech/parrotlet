@@ -264,22 +264,22 @@ private struct RoundSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(header)
-                .font(.eaFont(10, .caption))
+                .eaFont(10, .caption)
                 .foregroundStyle(.tertiary)
             if round.userIndex < turns.count {
                 Text(ChatNavigation.plainSummary(turns[round.userIndex].content, maxLines: 2))
-                    .font(.eaFont(12.5, weight: .medium))
+                    .eaFont(12.5, weight: .medium)
                     .lineLimit(2)
             }
             if let a = round.assistantIndex, a < turns.count {
                 Text(ChatNavigation.plainSummary(turns[a].content, maxLines: 3))
-                    .font(.eaFont(12.5))
+                    .eaFont(12.5)
                     .foregroundStyle(.secondary)
                     .lineLimit(3)
             } else {
                 // 无 env 注入处，走 L10n.current 快照（同菜单栏桥接模式）
                 Text(L10n.s(.replyGenerating, L10n.current))
-                    .font(.eaFont(12.5))
+                    .eaFont(12.5)
                     .foregroundStyle(.tertiary)
             }
         }

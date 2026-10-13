@@ -60,6 +60,18 @@ final class AppEnvironment {
         }
     }
 
+    /// 界面字号缩放系数（设置 → 外观区 Slider，1 = 标准）：写回 config.json；
+    /// 各场景根读取它注入 \.eaFontScale，拖动即时全 UI 重排
+    /// （见 ParrotletApp 各 Window、LookupCard）
+    var fontScale: Double {
+        didSet {
+            guard fontScale != oldValue else { return }
+            var next = configStore.value
+            next.fontScale = AppConfig.clampingFontScale(fontScale)
+            configStore.save(next)
+        }
+    }
+
     init() {
         let config = ConfigStore()
         self.configStore = config
@@ -75,6 +87,7 @@ final class AppEnvironment {
         self.sidebarPinned = config.value.sidebarPinned
         self.systemVoiceID = config.value.systemVoiceID
         self.speechRate = config.value.speechRate
+        self.fontScale = config.value.fontScale
         speech.voiceID = config.value.systemVoiceID
         speech.rate = config.value.speechRate
         // 全局外观（自动/浅色/深色）按 config.json 应用；设置页改动实时生效。

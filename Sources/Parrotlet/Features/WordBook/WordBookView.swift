@@ -67,16 +67,16 @@ struct WordBookView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(entry.text)
-                    .font(.eaFont(15, .body, weight: .semibold))
+                    .eaFont(15, .body, weight: .semibold)
                 if !entry.note.isEmpty {
                     Text(entry.note)
-                        .font(.eaFont(12, .callout))
+                        .eaFont(12, .callout)
                         .foregroundStyle(.secondary)
                         .lineLimit(6)
                 }
                 if !entry.context.isEmpty {
                     Text(entry.context)
-                        .font(.eaFont(11, .caption))
+                        .eaFont(11, .caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(2)
                 }

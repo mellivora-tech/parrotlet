@@ -1,10 +1,40 @@
 import SwiftUI
 
-/// 全局统一字体：Inter（随包 assets/fonts/Inter.ttc，全字重真实字形；中文自动回落苹方）
-extension Font {
-    static func eaFont(_ size: CGFloat, _ style: Font.TextStyle = .body,
-                       weight: Font.Weight = .regular) -> Font {
-        .custom("Inter", size: size, relativeTo: style).weight(weight)
+/// 全局统一字体：Inter（随包 assets/fonts/Inter.ttc，全字重真实字形；中文自动回落苹方）。
+/// 字号缩放：macOS 的 \.dynamicTypeSize 实测对任何字体（系统样式与 custom relativeTo）
+/// 都不生效（2026-10 A/B 验证：xxLarge 与 .large 逐字等高），不能借道 Dynamic Type——
+/// 走显式 \.eaFontScale 环境值，场景根按 config.fontScale 注入
+private struct EAFontScaleKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 1
+}
+
+extension EnvironmentValues {
+    /// 界面字号缩放系数（1 = 标准）
+    var eaFontScale: CGFloat {
+        get { self[EAFontScaleKey.self] }
+        set { self[EAFontScaleKey.self] = newValue }
+    }
+}
+
+/// eaFont 修饰器：读 \.eaFontScale，把 Inter 基准尺寸乘上系数。
+/// 环境值依赖注册在渲染树节点上——宿主视图即使因 Equatable 被跳过
+/// （MarkdownBlocksView 历史消息），档位切换仍会失效本节点重排
+private struct EAFontModifier: ViewModifier {
+    @Environment(\.eaFontScale) private var scale
+    let size: CGFloat
+    let style: Font.TextStyle
+    let weight: Font.Weight
+
+    func body(content: Content) -> some View {
+        content.font(.custom("Inter", size: size * scale, relativeTo: style).weight(weight))
+    }
+}
+
+extension View {
+    /// 统一字体入口：.eaFont(14) / .eaFont(13, .callout, weight: .medium)
+    func eaFont(_ size: CGFloat, _ style: Font.TextStyle = .body,
+                weight: Font.Weight = .regular) -> some View {
+        modifier(EAFontModifier(size: size, style: style, weight: weight))
     }
 }
 
@@ -38,7 +68,7 @@ struct BlockView: View {
             MarkdownText(md)
         case .heading(_, let text):
             MarkdownText(text)
-                .font(.eaFont(16, .title3, weight: .semibold))
+                .eaFont(16, .title3, weight: .semibold)
                 .padding(.top, 4)
         case .unorderedItem(let text):
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -71,7 +101,7 @@ struct BlockView: View {
                 GridRow {
                     ForEach(Array(header.enumerated()), id: \.offset) { _, cell in
                         MarkdownText(cell)
-                            .font(.eaFont(13, .callout, weight: .semibold))
+                            .eaFont(13, .callout, weight: .semibold)
                     }
                 }
                 Divider().opacity(0.5)
@@ -79,7 +109,7 @@ struct BlockView: View {
                     GridRow {
                         ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
                             MarkdownText(cell)
-                                .font(.eaFont(13, .callout))
+                                .eaFont(13, .callout)
                         }
                     }
                 }
