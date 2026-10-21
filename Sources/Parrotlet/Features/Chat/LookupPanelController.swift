@@ -257,6 +257,12 @@ struct LookupCard: View {
         max(48, min(Self.maxContentHeight, lookup.heightCap - Self.chromeHeight))
     }
 
+    /// 讲解进行中：边框流光激活（loading 阶段边框兼任加载指示器）
+    private var isExplaining: Bool {
+        if case .loading = lookup.phase { return true }
+        return false
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -344,7 +350,10 @@ struct LookupCard: View {
             lookup.noteIdealHeight(Self.chromeHeight + min(contentHeight, contentCap))
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        // 常驻中性发丝线：毛玻璃卡片的边缘定义（非彩色，空闲也不撤）
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.08)))
+        // 流光边框：讲解中彗星流光淡入，结束淡出，空闲无痕（只剩发丝线）
+        .overlay(RainbowFlowBorder(cornerRadius: 12, active: isExplaining))
         // 阴影由面板窗口（hasShadow，按内容透明度成型）提供，不再自绘
         // 字号缩放在 body 内注入（而非 makePanel 一次性）：面板常驻复用，
         // NSHostingView rootView 冻结于创建时，外部注入会锁死旧系数
