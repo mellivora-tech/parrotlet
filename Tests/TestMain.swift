@@ -67,7 +67,7 @@ enum TestMain {
             + chatModelTests + edgeHideTests + windowGeometryTests + settingsTests + lookupTests
             + lookupPanelTests + chatSidebarTests + speechTests + wordBookTests
             + appLogTests + chatNavigationTests + starterSuggestionsTests + keychainTests
-            + schemaVersionTests
+            + schemaVersionTests + rainbowFlowBorderTests
     }
 }
 

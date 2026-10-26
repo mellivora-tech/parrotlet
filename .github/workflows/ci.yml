@@ -35,4 +35,4 @@ jobs:
           codesign --verify build/Parrotlet.app
           file build/Parrotlet.app/Contents/MacOS/Parrotlet
           vtool -show-build build/Parrotlet.app/Contents/MacOS/Parrotlet | tee /tmp/vtool.txt
-          grep -q 'platform MacOSX' /tmp/vtool.txt
+          grep -qi 'platform macos' /tmp/vtool.txt
