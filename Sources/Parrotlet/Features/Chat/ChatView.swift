@@ -974,7 +974,7 @@ private struct MainThreadEventBox: @unchecked Sendable {
 /// Equatable：turn 没变时跳过——打字/流式触发的全树重渲染不再波及历史消息
 /// （@State/@Environment 不参与相等判定，手动 == 只比 turn）
 @MainActor
-private struct TurnView: View, @MainActor Equatable {
+private struct TurnView: View, @preconcurrency Equatable {
     let turn: DialogueTurn
     @Environment(AppEnvironment.self) private var env
 
