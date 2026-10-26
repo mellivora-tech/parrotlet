@@ -249,6 +249,7 @@ struct LookupCard: View {
     @State private var contentHeight: CGFloat = 120
 
     private static let autoWidth: CGFloat = 300
+    private static let cardCornerRadius: CGFloat = 12
     private static let maxContentHeight: CGFloat = 320
     /// chrome ≈ 标题行 + Divider + spacing + 上下 padding，压高时从 heightCap 里扣
     private static let chromeHeight: CGFloat = 76
@@ -349,11 +350,11 @@ struct LookupCard: View {
         .onChange(of: lookup.heightCap) { _, _ in
             lookup.noteIdealHeight(Self.chromeHeight + min(contentHeight, contentCap))
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Self.cardCornerRadius))
         // 常驻中性发丝线：毛玻璃卡片的边缘定义（非彩色，空闲也不撤）
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.08)))
+        .overlay(RoundedRectangle(cornerRadius: Self.cardCornerRadius).strokeBorder(.primary.opacity(0.08)))
         // 流光边框：讲解中彗星流光淡入，结束淡出，空闲无痕（只剩发丝线）
-        .overlay(RainbowFlowBorder(cornerRadius: 12, active: isExplaining))
+        .overlay(RainbowFlowBorder(cornerRadius: Self.cardCornerRadius, active: isExplaining))
         // 阴影由面板窗口（hasShadow，按内容透明度成型）提供，不再自绘
         // 字号缩放在 body 内注入（而非 makePanel 一次性）：面板常驻复用，
         // NSHostingView rootView 冻结于创建时，外部注入会锁死旧系数

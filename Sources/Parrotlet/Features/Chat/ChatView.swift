@@ -237,11 +237,13 @@ private struct ConversationView: View {
             }
         }
         .animation(.easeOut(duration: 0.12), value: lookup.isButtonPresented)
-        // 流光边框：AI 回复中（streamingText 非 nil）全彩虹沿窗口边流动，空闲静态淡彩。
+        // 流光边框：AI 回复中（streamingText 非 nil）全彩虹沿窗口边流动，空闲完全无痕。
         // 必须挂在 ignoresSafeArea 之内：扩展是「越界绘制」语义，环挂在外层只会锚定
         // 安全区边界（实测顶边停在 titlebar 区下沿 y≈32，header 漏在圈外）。
-        // 圆角 12 ≈ 系统窗角：Tahoe 半径随窗型/侧栏态浮动、无公开 API，对不齐只调此常量
-        .overlay(RainbowFlowBorder(cornerRadius: 12, active: vm.streamingText != nil))
+        // 圆角 12 ≈ 系统窗角：Tahoe 半径随窗型/侧栏态浮动、无公开 API，对不齐只调此常量。
+        // 贴边隐藏后冻结相位并停止 TimelineView，滑出时从原位置继续。
+        .overlay(RainbowFlowBorder(cornerRadius: 12, active: vm.streamingText != nil,
+                                   paused: geometry.edgeHidden))
         // 放最外层：整个视图树（含 overlay 里的面板）共享同一无安全区坐标系，
         // 否则 header 突破了安全区而 panel 没有，顶部错开约 28pt
         .ignoresSafeArea(.container, edges: .top)
