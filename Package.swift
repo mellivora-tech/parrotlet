@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.1
 import PackageDescription
 
 // app 的编译入口（swift build -c release）；打包 .app/图标/签名仍走 Makefile。
