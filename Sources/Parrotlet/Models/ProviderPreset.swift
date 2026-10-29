@@ -11,6 +11,7 @@ struct ProviderPreset: Sendable, Identifiable, Equatable {
     let defaultName: String
     /// 预填 baseURL（可改）
     let baseURL: String
+    let apiKeyURL: URL
     /// 模型下拉的内置选项（与已保存值 ∪ 在线拉取结果合并）
     let builtinModels: [String]
     /// 老配置（无 preset 标记）按 baseURL host 推断预设的关键词
@@ -19,18 +20,21 @@ struct ProviderPreset: Sendable, Identifiable, Equatable {
     static let deepseek = ProviderPreset(
         id: "deepseek", kind: .openAICompatible, defaultName: "DeepSeek",
         baseURL: "https://api.deepseek.com/v1",
+        apiKeyURL: URL(string: "https://platform.deepseek.com/api_keys")!,
         builtinModels: ["deepseek-chat", "deepseek-reasoner"],
         hostKeywords: ["deepseek"])
 
     static let kimi = ProviderPreset(
         id: "kimi", kind: .openAICompatible, defaultName: "Kimi",
         baseURL: "https://api.moonshot.cn/v1",
+        apiKeyURL: URL(string: "https://platform.moonshot.cn/console/api-keys")!,
         builtinModels: ["kimi-k2-0905-preview", "moonshot-v1-32k", "moonshot-v1-128k"],
         hostKeywords: ["moonshot", "kimi"])
 
     static let glm = ProviderPreset(
         id: "glm", kind: .openAICompatible, defaultName: "智谱 GLM",
         baseURL: "https://open.bigmodel.cn/api/paas/v4",
+        apiKeyURL: URL(string: "https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys")!,
         builtinModels: ["glm-4.7", "glm-4.6", "glm-4.5-air"],
         hostKeywords: ["bigmodel", "zhipu", "chatglm"])
 

@@ -17,6 +17,7 @@ struct SettingsView: View {
     private struct EditRoute: Hashable {
         let config: ProviderConfig
         let isNew: Bool
+        let quickSetup: Bool
     }
     @State private var path: [EditRoute] = []
     /// 前进历史（NavigationStack 只维护回退；层级只有两级，一层就够）
@@ -129,10 +130,9 @@ struct SettingsView: View {
                     .frame(width: 22, height: 22)
                     .background(p.tint.gradient, in: RoundedRectangle(cornerRadius: 6))
                 Text(env.t(p.key)).font(.callout)
-                // 模型页状态圆点：有启用项 → 绿；全停用 → 红
                 if p == .services {
                     Circle()
-                        .fill(vm.activeProviderID.isEmpty ? Color.red : DS.green)
+                        .fill(vm.isActiveProviderReady ? DS.green : Color.red)
                         .frame(width: 6, height: 6)
                 }
                 Spacer()
@@ -187,13 +187,26 @@ struct SettingsView: View {
                     .padding(.bottom, 26)
                 }
                 .navigationDestination(for: EditRoute.self) { route in
-                    // 三级页：编辑/新增 provider（系统推入，非 sheet）
-                    ProviderEditPage(
-                        draft: route.config, isNew: route.isNew,
-                        onSave: { saveDraft($0) },
-                        onDelete: { confirmDelete($0, name: route.config.name) },
-                        onCancel: { goBack() }
-                    )
+                    if route.quickSetup, let preset = ProviderPreset.match(route.config) {
+                        ScrollView {
+                            ProviderSetupView(
+                                preset: preset, provider: route.config,
+                                showsPresetPicker: false,
+                                connectButtonKey: .connectAndSave,
+                                onConnected: {
+                                    if path.last == route { path.removeLast() }
+                                })
+                            .padding(20)
+                            .frame(maxWidth: 560)
+                        }
+                    } else {
+                        ProviderEditPage(
+                            draft: route.config, isNew: route.isNew,
+                            onSave: { saveDraft($0) },
+                            onDelete: { confirmDelete($0, name: route.config.name) },
+                            onCancel: { goBack() }
+                        )
+                    }
                 }
                 // 系统自带的浮动返回钮按窗口安全区定位，落在侧栏上——藏掉，‹ › 用工具栏自绘的
                 .navigationBarBackButtonHidden(true)
@@ -469,23 +482,21 @@ struct SettingsView: View {
         .controlSize(.small)
     }
 
-    private func presetIcon(_ preset: ProviderPreset) -> some View {
-        Group {
-            if let img = NSImage(named: "provider-\(preset.id)") {
-                Image(nsImage: img)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                Image(systemName: "globe")
-            }
+    private func presetIcon(_ preset: ProviderPreset) -> Image {
+        if let image = NSImage(named: "provider-\(preset.id)")?.copy() as? NSImage {
+            image.size = NSSize(width: 16, height: 16)
+            return Image(nsImage: image)
         }
+        return Image(systemName: "globe")
     }
 
     // MARK: - 三级页导航与编辑动作
 
     /// 推入编辑页（清空前进历史）
     private func openEditor(_ p: ProviderConfig, isNew: Bool) {
-        path.append(EditRoute(config: p, isNew: isNew))
+        let quickSetup = ProviderPreset.match(p) != nil
+            && (isNew || !SettingsViewModel.isReady(p))
+        path.append(EditRoute(config: p, isNew: isNew, quickSetup: quickSetup))
         forwardRoute = nil
     }
 
@@ -801,6 +812,22 @@ private struct ProviderEditPage: View {
             await vm.fetchModels(draft)
             if let first = vm.models[draft.id]?.first, draft.model.isEmpty {
                 draft.model = first
+            }
+        }
+        .onChange(of: draft.apiKey) {
+            let changedKey = draft.apiKey
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                MainActor.assumeIsolated {
+                    guard draft.apiKey == changedKey else { return }
+                    let isLocal = (try? APIEndpoint.validate(draft.baseURL))?.isLocal == true
+                    guard isLocal || ((changedKey ?? "").isEmpty == false) else { return }
+                    Task {
+                        await vm.fetchModels(draft)
+                        if let first = vm.models[draft.id]?.first, draft.model.isEmpty {
+                            draft.model = first
+                        }
+                    }
+                }
             }
         }
     }

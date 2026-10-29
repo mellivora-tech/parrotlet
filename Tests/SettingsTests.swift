@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// 设置页模型服务：预设目录 / 互斥开关 / 添加联动（对齐 workstation 参考交互）
 let settingsTests: [TestCase] = [
@@ -56,6 +57,23 @@ let settingsTests: [TestCase] = [
             try expectEqual(vm.activeProviderID, "b")
             vm.toggleActive("b")   // 再点当前项 → 全部停用
             try expectEqual(vm.activeProviderID, "")
+        }
+    },
+
+    TestCase(name: "settings.toggleActive：配置变化会通知 SwiftUI 观察层") {
+        try MainActor.assumeIsolated {
+            let provider = ProviderConfig(id: "a", kind: .openAICompatible, name: "A",
+                                          baseURL: "https://a.com/v1", model: "m")
+            let (vm, dir) = makeSettingsViewModelForTest(seed: [provider])
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let notified = SettingsAsyncResultBox<Bool>()
+            withObservationTracking {
+                _ = vm.config
+            } onChange: {
+                notified.outcome = .success(true)
+            }
+            vm.toggleActive("a")
+            try expect(notified.outcome != nil, "配置保存后必须通知视图刷新，否则 Toggle 停留在旧状态")
         }
     },
 
@@ -128,6 +146,109 @@ let settingsTests: [TestCase] = [
         }
     },
 
+    TestCase(name: "provider.readiness：active、Key、endpoint 和模型必须真正可用") {
+        try MainActor.assumeIsolated {
+            var remote = ProviderConfig(id: "remote", kind: .openAICompatible, name: "Remote",
+                                        baseURL: "https://example.com/v1", model: "m")
+            try expect(!SettingsViewModel.isReady(nil), "无 active Provider 未就绪")
+            try expect(!SettingsViewModel.isReady(remote), "远程服务无 Key 未就绪")
+            remote.apiKey = "   "
+            try expect(!SettingsViewModel.isReady(remote), "空白 Key 未就绪")
+            remote.apiKey = "secret"
+            try expect(SettingsViewModel.isReady(remote), "完整远程配置已就绪")
+            remote.model = " "
+            try expect(!SettingsViewModel.isReady(remote), "空模型未就绪")
+            remote.model = "m"
+            remote.baseURL = "not a URL"
+            try expect(!SettingsViewModel.isReady(remote), "非法 endpoint 未就绪")
+
+            let local = ProviderConfig(id: "local", kind: .openAICompatible, name: "Local",
+                                       baseURL: "http://127.0.0.1:11434/v1", model: "qwen")
+            try expect(SettingsViewModel.isReady(local), "本地服务允许无 Key")
+
+            let (vm, dir) = makeSettingsViewModelForTest(seed: [remote], active: "")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            try expect(!vm.isActiveProviderReady, "Provider 存在但未启用仍未就绪")
+        }
+    },
+
+    TestCase(name: "provider.setupDraft：优先复用已有预设，避免重复添加") {
+        try MainActor.assumeIsolated {
+            let existing = ProviderConfig(id: "deepseek", kind: .openAICompatible, name: "My DS",
+                                          baseURL: "https://api.deepseek.com/v1", model: "custom-model")
+            let (vm, dir) = makeSettingsViewModelForTest(seed: [existing])
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let reused = vm.setupDraft(for: .deepseek)
+            try expectEqual(reused.id, existing.id)
+            try expectEqual(reused.model, "custom-model")
+            let created = vm.setupDraft(for: .kimi)
+            try expect(created.id.hasPrefix("kimi-"), "没有已有项时才创建新草稿")
+        }
+    },
+
+    TestCase(name: "provider.connect：测试成功后保存、命名并启用") {
+        try MainActor.assumeIsolated {
+            let old = ProviderConfig(id: "old", kind: .openAICompatible, name: "Old",
+                                     baseURL: "https://old.com/v1", model: "m", apiKey: "old-key")
+            let blank = ProviderConfig(id: "deepseek", kind: .openAICompatible, name: "",
+                                       baseURL: "https://api.deepseek.com/v1", model: "deepseek-chat")
+            let (vm, dir) = makeSettingsViewModelForTest(seed: [old, blank], active: "old")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            vm.connectionProbeOverride = { _ in }
+            let connected = ProviderConfig(
+                id: blank.id, kind: blank.kind, name: blank.name,
+                baseURL: blank.baseURL, model: blank.model, apiKey: "new-key")
+            let failure = try awaitSettings { await vm.connectAndActivate(connected) }
+            try expect(failure == nil, "连接成功不应返回错误")
+            try expectEqual(vm.activeProviderID, "deepseek")
+            try expectEqual(vm.providers.count, 2, "已有 Provider 应更新而不是重复添加")
+            try expectEqual(vm.provider("deepseek")?.name, "DeepSeek")
+            try expect(vm.isActiveProviderReady, "保存后的 active Provider 应就绪")
+        }
+    },
+
+    TestCase(name: "provider.connect：测试失败不保存、不改变 active") {
+        try MainActor.assumeIsolated {
+            let old = ProviderConfig(id: "old", kind: .openAICompatible, name: "Old",
+                                     baseURL: "https://old.com/v1", model: "m", apiKey: "old-key")
+            let candidate = ProviderConfig(id: "deepseek", kind: .openAICompatible, name: "",
+                                           baseURL: "https://api.deepseek.com/v1", model: "deepseek-chat",
+                                           apiKey: "bad-key")
+            let (vm, dir) = makeSettingsViewModelForTest(seed: [old], active: "old")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            vm.connectionProbeOverride = { _ in throw LLMError.http(status: 401, body: "untrusted body") }
+            let failure = try awaitSettings { await vm.connectAndActivate(candidate) }
+            try expectEqual(failure?.style, .guidance)
+            try expectEqual(failure?.detail, "HTTP 401", "远程响应正文不得进入用户错误详情")
+            try expectEqual(vm.activeProviderID, "old")
+            try expectEqual(vm.providers.count, 1, "失败的候选 Provider 不得落盘")
+            try expect(vm.isActiveProviderReady, "原有可用配置不得受影响")
+        }
+    },
+
+    TestCase(name: "provider.connect：连接成功但保存失败返回存储错误") {
+        try MainActor.assumeIsolated {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("settings-tests-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let url = dir.appendingPathComponent("config.json")
+            try Data("broken config".utf8).write(to: url)
+            let store = ConfigStore(url: url, secrets: .inMemory())
+            let vm = SettingsViewModel(configStore: store, llm: LLMService(configStore: store))
+            vm.connectionProbeOverride = { _ in }
+            let candidate = ProviderConfig(id: "new", kind: .openAICompatible, name: "New",
+                                           baseURL: "https://new.com/v1", model: "m", apiKey: "key")
+            let previousActive = vm.activeProviderID
+            let failure = try awaitSettings { await vm.connectAndActivate(candidate) }
+            try expectEqual(failure?.style, .failure)
+            try expectEqual(failure?.message, L10n.s(.storageSaveFailed, vm.config.language.resolved))
+            try expectEqual(vm.activeProviderID, previousActive)
+            try expect(vm.provider("new") == nil, "保存被拒绝时不得新增 Provider")
+            try expect(vm.testing["new"] != true, "返回后必须清理连接中状态")
+        }
+    },
+
     TestCase(name: "fontScale：默认 1.0 不缩放，越界钳回安全范围") {
         try expectEqual(AppConfig.clampingFontScale(1.0), 1.0, "默认 = 标准")
         try expectEqual(AppConfig.clampingFontScale(0.5), 0.85, "低于下限钳到 0.85")
@@ -150,4 +271,26 @@ private func makeSettingsViewModelForTest(
     try? JSONEncoder().encode(config).write(to: url)
     let store = ConfigStore(url: url, secrets: .inMemory())
     return (SettingsViewModel(configStore: store, llm: LLMService(configStore: store)), dir)
+}
+
+private final class SettingsAsyncResultBox<T>: @unchecked Sendable {
+    var outcome: Result<T, Error>?
+}
+
+private func awaitSettings<T>(_ operation: @escaping @Sendable () async throws -> T) throws -> T {
+    let box = SettingsAsyncResultBox<T>()
+    let semaphore = DispatchSemaphore(value: 0)
+    Task.detached {
+        do { box.outcome = .success(try await operation()) }
+        catch { box.outcome = .failure(error) }
+        semaphore.signal()
+    }
+    let deadline = Date().addingTimeInterval(10)
+    while semaphore.wait(timeout: .now()) != .success && Date() < deadline {
+        RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+    }
+    guard let outcome = box.outcome else {
+        throw TestFailure(message: "async settings test timed out", file: "SettingsTests", line: #line)
+    }
+    return try outcome.get()
 }
