@@ -81,7 +81,9 @@ Releases (maintainers only): `tools/release.sh <semver>` builds, signs (EdDSA, k
 
 ## LLM providers
 
-Configure providers in the app settings or in:
+On first launch, the chat window shows a quick setup card: choose DeepSeek, Kimi, or GLM, paste your API key, and connect. The same quick setup is available under **Models → Add Provider** for presets. Expand **Advanced** to change the name, base URL, or model; **Custom** opens the full endpoint form.
+
+Existing providers can be edited in Settings. You can also configure providers manually in:
 
 ```text
 ~/Library/Application Support/Parrotlet/config.json

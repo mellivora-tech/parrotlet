@@ -366,9 +366,14 @@ private struct ConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 13) {
-                        // 空态（无用户发言）：问候块 + 建议胶囊，1:1 参考 Claude 欢迎页
                         if vm.userTurnCount == 0 {
-                            WelcomeView(vm: vm)
+                            if env.settings.isActiveProviderReady {
+                                WelcomeView(vm: vm)
+                            } else {
+                                ProviderSetupView(
+                                    preset: .deepseek,
+                                    provider: env.settings.setupDraft(for: .deepseek))
+                            }
                         }
                         if let session = vm.activeSession {
                             ForEach(session.turns) { turn in

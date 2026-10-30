@@ -1,8 +1,10 @@
 import Foundation
+import Observation
 
 /// config.json 读写：首次启动写入带说明的模板（JSON 无注释，用 `_comment` 字段——解码器忽略未知键）。
 /// apiKey 不落盘：密钥统一进 Keychain（见 KeychainHelper），本文件只留 null。
 @MainActor
+@Observable
 final class ConfigStore {
     private let url: URL
     private let store: JSONStore<AppConfig>

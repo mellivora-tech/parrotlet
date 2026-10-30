@@ -47,6 +47,8 @@ enum L10n {
         // 模型服务页（参考 workstation 交互重设计）
         case infoProviders, providerInfoText, addProvider, emptyProviders, customPreset
         case notConfigured, configureProviderFirst, apiKeyRequired
+        case setupTitle, getAPIKey, setupKeyPlaceholder, advancedSettings
+        case connectAndStart, connectAndSave, connecting, setupPrivacy, setupTestNote
         // 国际化补全（2026-09 审查）：外观/语言选项、语音、URL 校验错误、生成中占位
         case appearanceAuto, appearanceLight, appearanceDark, languageAuto, voiceAuto
         case voiceQualityCompact, voiceQualityEnhanced, voiceQualityPremium
@@ -182,7 +184,7 @@ enum L10n {
         case .notTested: pair = ("未测试", "Not tested")
         case .save: pair = ("保存", "Save")
         case .deleteService: pair = ("删除此服务…", "Delete Service…")
-        case .keyPlaceholder: pair = ("明文存于本机 config.json", "Stored in plain text in config.json")
+        case .keyPlaceholder: pair = ("仅保存在本机钥匙串", "Stored only in this Mac's Keychain")
         case .enterKeyFirst: pair = ("请先填写 API Key", "Enter an API key first")
         case .alertLeaveMessage: pair = ("离开后将丢失当前修改。", "Your changes will be lost.")
         case .discard: pair = ("放弃更改", "Discard")
@@ -204,6 +206,19 @@ enum L10n {
         case .configureProviderFirst: pair = ("请先在设置中启用一个模型服务并填写 API Key",
                                              "Enable a model provider and set its API key in Settings first")
         case .apiKeyRequired: pair = ("请填写 API Key", "API key is required")
+        case .setupTitle: pair = ("连接模型服务，开始英语练习", "Connect a model to start practicing")
+        case .getAPIKey: pair = ("获取 Key", "Get API key")
+        case .setupKeyPlaceholder: pair = ("粘贴 API Key", "Paste your API key")
+        case .advancedSettings: pair = ("高级设置", "Advanced")
+        case .connectAndStart: pair = ("连接并开始", "Connect & Start")
+        case .connectAndSave: pair = ("连接并保存", "Connect & Save")
+        case .connecting: pair = ("正在验证…", "Connecting…")
+        case .setupPrivacy: pair = (
+            "Key 仅保存在本机钥匙串；聊天内容会发送给你选择的服务。",
+            "Your key stays in this Mac's Keychain. Chat content is sent to the provider you choose.")
+        case .setupTestNote: pair = (
+            "验证会产生一次极小的测试请求。",
+            "Verification sends one minimal test request.")
         // 用户可见错误文案
         case .errorNotConfigured: pair = ("还没有配置模型服务，先去设置里添加一个吧",
                                           "No model provider configured yet — add one in Settings")

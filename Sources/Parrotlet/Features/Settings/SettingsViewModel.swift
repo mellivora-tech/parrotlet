@@ -16,6 +16,8 @@ final class SettingsViewModel {
     /// 测试连接状态：id → (运行中, 结果文案)
     private(set) var testing: [String: Bool] = [:]
     private(set) var testResults: [String: String] = [:]
+    /// 测试挂钩：非 nil 时不发真实网络请求
+    var connectionProbeOverride: ((ProviderConfig) async throws -> Void)?
 
     init(configStore: ConfigStore, llm: LLMService) {
         self.configStore = configStore
@@ -33,6 +35,16 @@ final class SettingsViewModel {
             next.activeProviderID = newValue
             configStore.save(next)
         }
+    }
+
+    var isActiveProviderReady: Bool { Self.isReady(config.activeProvider) }
+
+    static func isReady(_ provider: ProviderConfig?) -> Bool {
+        guard let provider,
+              let endpoint = try? APIEndpoint.validate(provider.baseURL),
+              !provider.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        if endpoint.isLocal { return true }
+        return !(provider.apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func provider(_ id: String) -> ProviderConfig? {
@@ -62,6 +74,13 @@ final class SettingsViewModel {
             model: preset?.builtinModels.first ?? "",
             apiKey: nil, maxTokens: 4096,
             preset: preset?.id)
+    }
+
+    func setupDraft(for preset: ProviderPreset) -> ProviderConfig {
+        if let existing = providers.first(where: { ProviderPreset.match($0)?.id == preset.id }) {
+            return existing
+        }
+        return draftFromPreset(preset)
     }
 
     /// 新增落盘（模态「保存」）。参考联动规则：当前无启用项时新配置自动成为启用项
@@ -99,19 +118,68 @@ final class SettingsViewModel {
         testResults[provider.id] = nil
         defer { testing[provider.id] = nil }
 
-        // 直接对目标 provider 发一条最小请求（不走 activeProvider 分发）
-        let probe: any LLMProvider = OpenAICompatibleProvider(config: provider)
         let started = ContinuousClock.now
         do {
-            _ = try await probe.complete(
-                [ChatMessage.user("Reply with exactly: ok")],
-                options: .init(maxTokens: 32))
+            try await probeConnection(provider)
             // 成功只报可用 + 延迟（参考设计：绿点「可用 · Nms」）
             let ms = Int(started.duration(to: .now) / .milliseconds(1))
             testResults[provider.id] = "✅ " + L10n.availableLatency(ms, uiLanguage)
         } catch {
             testResults[provider.id] = "❌ \(error.localizedDescription.prefix(150))"
         }
+    }
+
+    func connectAndActivate(_ provider: ProviderConfig) async -> UserFacingError? {
+        testing[provider.id] = true
+        testResults[provider.id] = nil
+        defer { testing[provider.id] = nil }
+
+        let started = ContinuousClock.now
+        do {
+            try await probeConnection(provider)
+            var connected = provider
+            if connected.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                connected.name = ProviderPreset.match(connected)?.defaultName
+                    ?? L10n.s(.customServiceName, uiLanguage)
+            }
+            var next = config
+            if let idx = next.providers.firstIndex(where: { $0.id == connected.id }) {
+                next.providers[idx] = connected
+            } else {
+                next.providers.append(connected)
+            }
+            next.activeProviderID = connected.id
+            if case .failure(let error) = configStore.save(next) {
+                let failure = UserFacingError(
+                    style: .failure,
+                    message: L10n.s(.storageSaveFailed, uiLanguage),
+                    action: nil,
+                    detail: error.localizedDescription)
+                testResults[provider.id] = "❌ \(failure.message)"
+                return failure
+            }
+            let ms = Int(started.duration(to: .now) / .milliseconds(1))
+            testResults[provider.id] = "✅ " + L10n.availableLatency(ms, uiLanguage)
+            return nil
+        } catch {
+            let failure = UserFacingError.present(error, language: uiLanguage)
+                ?? UserFacingError(style: .failure,
+                                   message: L10n.s(.errorBadResponse, uiLanguage),
+                                   action: nil, detail: "Connection cancelled")
+            testResults[provider.id] = "❌ \(failure.message)"
+            return failure
+        }
+    }
+
+    private func probeConnection(_ provider: ProviderConfig) async throws {
+        if let connectionProbeOverride {
+            try await connectionProbeOverride(provider)
+            return
+        }
+        let probe: any LLMProvider = OpenAICompatibleProvider(config: provider)
+        _ = try await probe.complete(
+            [ChatMessage.user("Reply with exactly: ok")],
+            options: .init(maxTokens: 32))
     }
 
     // MARK: - 模型列表

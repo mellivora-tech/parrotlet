@@ -1,7 +1,9 @@
 import Foundation
+import Observation
 
 /// 泛型 JSON 存储：原子写；坏文件隔离后进入只读恢复模式，避免默认值覆盖用户数据。
 @MainActor
+@Observable
 final class JSONStore<Element: Codable> {
     enum PersistenceState: Equatable {
         case normal
